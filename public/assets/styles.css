@@ -1,0 +1,353 @@
+:root {
+  --ink: #111827;
+  --muted: #64748b;
+  --line: #e5e7eb;
+  --paper: #ffffff;
+  --wash: #f7f7fb;
+  --mint: #7fffd4;
+  --lime: #d8ff65;
+  --pink: #ff7ab6;
+  --blue: #76a9ff;
+}
+
+* {
+  letter-spacing: 0;
+}
+
+body {
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.fw-black {
+  font-weight: 900;
+}
+
+.auth-shell {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(127, 255, 212, 0.35), transparent 28%),
+    radial-gradient(circle at 84% 20%, rgba(255, 122, 182, 0.22), transparent 26%),
+    linear-gradient(135deg, #ffffff 0%, #f5f7fb 48%, #fdfaff 100%);
+}
+
+.app-shell {
+  background: var(--wash);
+}
+
+.brand-mark {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.65rem;
+  text-decoration: none;
+}
+
+.brand-icon {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 14px;
+  color: white;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.auth-card,
+.surface,
+.dashboard-hero {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(17, 24, 39, 0.08);
+}
+
+.auth-card {
+  padding: clamp(1.25rem, 2vw, 2rem);
+}
+
+.surface {
+  padding: 1.25rem;
+}
+
+.glass-nav {
+  background: rgba(247, 247, 251, 0.82);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.soft-tabs {
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 0.35rem;
+}
+
+.soft-tabs .nav-link {
+  border-radius: 12px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.soft-tabs .nav-link.active {
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+}
+
+.mini-pill {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.divider {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.85rem;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.divider::before,
+.divider::after {
+  background: var(--line);
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.lift-btn,
+.icon-btn,
+.habit-card,
+.goal-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.lift-btn:hover,
+.icon-btn:hover,
+.habit-card:hover,
+.goal-card:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-hero {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 170px;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  position: relative;
+}
+
+.dashboard-hero::after {
+  background: linear-gradient(135deg, var(--lime), var(--mint), var(--blue), var(--pink));
+  content: "";
+  height: 100%;
+  opacity: 0.36;
+  position: absolute;
+  right: -10%;
+  top: 0;
+  transform: skewX(-16deg);
+  width: 42%;
+}
+
+.dashboard-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-score {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--ink);
+  border-radius: 999px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 132px;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-score span {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero-score small {
+  max-width: 90px;
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-card,
+.habit-card,
+.goal-card,
+.suggestion-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.stat-card {
+  min-height: 118px;
+  padding: 1rem;
+}
+
+.stat-icon {
+  align-items: center;
+  border-radius: 14px;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.habit-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.habit-card,
+.goal-card,
+.suggestion-card {
+  padding: 1rem;
+}
+
+.habit-icon {
+  align-items: center;
+  border-radius: 16px;
+  color: white;
+  display: inline-flex;
+  font-size: 1.2rem;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.check-btn.is-done {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+.progress {
+  background: #eef2f7;
+  height: 0.65rem;
+}
+
+.weekly-chart {
+  align-items: end;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-height: 190px;
+}
+
+.bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  justify-content: end;
+  min-width: 0;
+  text-align: center;
+}
+
+.bar {
+  background: linear-gradient(180deg, var(--ink), #3f3f46);
+  border-radius: 999px 999px 8px 8px;
+  min-height: 10px;
+}
+
+.avatar-btn {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 999px;
+  color: white;
+  display: inline-flex;
+  font-weight: 900;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  color: var(--muted);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.motion-pop {
+  animation: popIn 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-fade {
+  animation: fadeLift 420ms ease;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fadeLift {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-hero::after {
+    height: 48%;
+    right: -18%;
+    top: auto;
+    bottom: 0;
+    width: 80%;
+  }
+
+  .hero-score {
+    flex-basis: 112px;
+    height: 112px;
+    width: 112px;
+  }
+
+  .display-4 {
+    font-size: 2.35rem;
+  }
+}
