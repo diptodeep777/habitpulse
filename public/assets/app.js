@@ -352,7 +352,7 @@ function renderMonthly() {
 
     return `
       <article class="calendar-cell ${day.workTotal ? "has-work" : "no-work"} ${isFull ? "is-full" : ""}">
-        <div class="water-fill" style="height:${percent}%"></div>
+        ${percent > 0 ? `<div class="water-fill" style="height:${percent}%"></div>` : ""}
         <div class="calendar-date">
           <span>${dayNumber}</span>
           <small>${escapeHtml(dayNames[date.getDay()])}</small>
