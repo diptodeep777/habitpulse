@@ -13,7 +13,7 @@ router.get(
   "/summary",
   asyncHandler(async (req, res) => {
     const range = dateRange(30);
-    const [habits, logs, goals] = await Promise.all([
+    const [habits, logs, goals, subHabits, subHabitLogs] = await Promise.all([
       prisma.habit.findMany({ where: { userId: req.user.id } }),
       prisma.habitLog.findMany({
         where: {
@@ -23,10 +23,19 @@ router.get(
           }
         }
       }),
-      prisma.goal.findMany({ where: { userId: req.user.id } })
+      prisma.goal.findMany({ where: { userId: req.user.id } }),
+      prisma.subHabit.findMany({ where: { userId: req.user.id } }),
+      prisma.subHabitLog.findMany({
+        where: {
+          userId: req.user.id,
+          date: {
+            in: range
+          }
+        }
+      })
     ]);
 
-    res.json(summarizeHabits({ habits, logs, goals }));
+    res.json(summarizeHabits({ habits, logs, goals, subHabits, subHabitLogs }));
   })
 );
 

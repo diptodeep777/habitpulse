@@ -8,6 +8,9 @@
   --lime: #d8ff65;
   --pink: #ff7ab6;
   --blue: #76a9ff;
+  --green: #16a34a;
+  --red: #ef4444;
+  --amber: #f59e0b;
 }
 
 * {
@@ -31,7 +34,8 @@ body {
 }
 
 .app-shell {
-  background: var(--wash);
+  background:
+    linear-gradient(180deg, #f8fafc 0%, #f7f7fb 45%, #ffffff 100%);
 }
 
 .brand-mark {
@@ -43,10 +47,19 @@ body {
   text-decoration: none;
 }
 
+.brand-icon,
+.avatar-btn,
+.hero-score,
+.stat-icon,
+.habit-icon,
+.avatar-large,
+.celebration-icon {
+  border-radius: 8px;
+}
+
 .brand-icon {
   align-items: center;
   background: var(--ink);
-  border-radius: 14px;
   color: white;
   display: inline-flex;
   height: 42px;
@@ -57,9 +70,9 @@ body {
 .auth-card,
 .surface,
 .dashboard-hero {
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: 24px;
+  border-radius: 8px;
   box-shadow: 0 24px 80px rgba(17, 24, 39, 0.08);
 }
 
@@ -72,19 +85,19 @@ body {
 }
 
 .glass-nav {
-  background: rgba(247, 247, 251, 0.82);
+  background: rgba(247, 247, 251, 0.86);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(17, 24, 39, 0.08);
 }
 
 .soft-tabs {
   background: #f1f5f9;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 0.35rem;
 }
 
 .soft-tabs .nav-link {
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--muted);
   font-weight: 800;
 }
@@ -99,7 +112,7 @@ body {
   align-items: center;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: 999px;
+  border-radius: 8px;
   display: inline-flex;
   font-size: 0.9rem;
   font-weight: 700;
@@ -127,14 +140,18 @@ body {
 .lift-btn,
 .icon-btn,
 .habit-card,
-.goal-card {
+.goal-card,
+.suggestion-card,
+.milestone-card {
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
 .lift-btn:hover,
 .icon-btn:hover,
 .habit-card:hover,
-.goal-card:hover {
+.goal-card:hover,
+.suggestion-card:hover,
+.milestone-card:hover {
   transform: translateY(-2px);
 }
 
@@ -168,14 +185,13 @@ body {
 
 .hero-score {
   align-items: center;
-  aspect-ratio: 1;
   background: var(--ink);
-  border-radius: 999px;
   color: white;
   display: flex;
-  flex-direction: column;
   flex: 0 0 132px;
+  flex-direction: column;
   justify-content: center;
+  min-height: 132px;
   text-align: center;
 }
 
@@ -200,10 +216,12 @@ body {
 .stat-card,
 .habit-card,
 .goal-card,
-.suggestion-card {
+.suggestion-card,
+.milestone-card,
+.profile-card {
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 8px;
 }
 
 .stat-card {
@@ -213,7 +231,6 @@ body {
 
 .stat-icon {
   align-items: center;
-  border-radius: 14px;
   display: inline-flex;
   height: 42px;
   justify-content: center;
@@ -223,18 +240,39 @@ body {
 .habit-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
 .habit-card,
 .goal-card,
-.suggestion-card {
+.suggestion-card,
+.milestone-card,
+.profile-card {
   padding: 1rem;
+}
+
+.habit-card {
+  position: relative;
+}
+
+.habit-card::before {
+  border-radius: 8px 0 0 8px;
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 5px;
+}
+
+.habit-done::before {
+  background: var(--green);
+}
+
+.habit-not-done::before {
+  background: var(--red);
 }
 
 .habit-icon {
   align-items: center;
-  border-radius: 16px;
   color: white;
   display: inline-flex;
   font-size: 1.2rem;
@@ -243,9 +281,74 @@ body {
   width: 48px;
 }
 
-.check-btn.is-done {
-  background: var(--ink);
-  border-color: var(--ink);
+.subhabit-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.subhabit-row {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.45rem 0.55rem;
+}
+
+.subhabit-row span {
+  font-size: 0.88rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.subhabit-row.is-complete {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.subhabit-toggle,
+.subhabit-delete {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  width: 26px;
+}
+
+.subhabit-row.is-complete .subhabit-toggle {
+  color: var(--green);
+}
+
+.check-actions {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.check-status {
+  border: 1px solid var(--line);
+  font-weight: 800;
+  min-height: 42px;
+}
+
+.done-action.active,
+.done-action:hover {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.miss-action.active,
+.miss-action:hover {
+  background: var(--red);
+  border-color: var(--red);
   color: white;
 }
 
@@ -271,16 +374,109 @@ body {
   text-align: center;
 }
 
+.bar-stack {
+  align-items: end;
+  background: #eef2f7;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.25rem;
+  height: 150px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.35rem;
+}
+
 .bar {
-  background: linear-gradient(180deg, var(--ink), #3f3f46);
-  border-radius: 999px 999px 8px 8px;
-  min-height: 10px;
+  border-radius: 8px 8px 4px 4px;
+  min-height: 0;
+  transition: height 420ms ease;
+  width: 42%;
+}
+
+.bar-done {
+  background: linear-gradient(180deg, #5ee6a8, var(--green));
+}
+
+.bar-missed {
+  background: linear-gradient(180deg, #ffb4b4, var(--red));
+}
+
+.monthly-chart {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(10, minmax(18px, 1fr));
+}
+
+.month-cell {
+  aspect-ratio: 1;
+  background: #e5e7eb;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 6px;
+}
+
+.month-cell.level-1 {
+  background: #bbf7d0;
+}
+
+.month-cell.level-2 {
+  background: #86efac;
+}
+
+.month-cell.level-3 {
+  background: #4ade80;
+}
+
+.month-cell.level-4 {
+  background: #16a34a;
+}
+
+.month-cell.has-miss {
+  box-shadow: inset 0 -4px 0 var(--red);
+}
+
+.milestone-card {
+  align-items: center;
+  display: flex;
+  gap: 0.8rem;
+}
+
+.milestone-card .stat-icon {
+  background: #f1f5f9;
+  flex: 0 0 42px;
+}
+
+.milestone-card.is-achieved {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.milestone-card.is-achieved .stat-icon {
+  background: #dcfce7;
+  color: var(--green);
+}
+
+.milestone-card.is-achieved > .bi {
+  color: var(--green);
+}
+
+.suggestion-ai {
+  background: linear-gradient(135deg, #ffffff, #eff6ff);
+  border-color: #bfdbfe;
+}
+
+.suggestion-ai .stat-icon {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.goal-card.is-complete {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
 .avatar-btn {
   align-items: center;
   background: var(--ink);
-  border-radius: 999px;
   color: white;
   display: inline-flex;
   font-weight: 900;
@@ -289,9 +485,62 @@ body {
   width: 42px;
 }
 
+.profile-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-hero,
+.profile-wide {
+  grid-column: 1 / -1;
+}
+
+.profile-hero {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.avatar-large,
+.celebration-icon {
+  align-items: center;
+  background: var(--ink);
+  color: white;
+  display: inline-flex;
+  font-size: 2rem;
+  font-weight: 900;
+  height: 76px;
+  justify-content: center;
+  width: 76px;
+}
+
+.analytics-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+}
+
+.analytics-row:first-of-type {
+  border-top: 0;
+}
+
+.celebration-card {
+  background:
+    linear-gradient(135deg, rgba(216, 255, 101, 0.22), rgba(127, 255, 212, 0.18)),
+    white;
+}
+
+.celebration-icon {
+  animation: pulseWin 900ms ease-in-out infinite alternate;
+  background: var(--amber);
+}
+
 .empty-state {
   border: 1px dashed #cbd5e1;
-  border-radius: 18px;
+  border-radius: 8px;
   color: var(--muted);
   padding: 1.25rem;
   text-align: center;
@@ -327,6 +576,15 @@ body {
   }
 }
 
+@keyframes pulseWin {
+  from {
+    transform: scale(0.98) rotate(-2deg);
+  }
+  to {
+    transform: scale(1.04) rotate(2deg);
+  }
+}
+
 @media (max-width: 767.98px) {
   .dashboard-hero {
     align-items: flex-start;
@@ -334,17 +592,26 @@ body {
   }
 
   .dashboard-hero::after {
+    bottom: 0;
     height: 48%;
     right: -18%;
     top: auto;
-    bottom: 0;
     width: 80%;
   }
 
   .hero-score {
     flex-basis: 112px;
-    height: 112px;
+    min-height: 112px;
     width: 112px;
+  }
+
+  .check-actions,
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monthly-chart {
+    grid-template-columns: repeat(6, minmax(18px, 1fr));
   }
 
   .display-4 {

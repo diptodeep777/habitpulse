@@ -13,19 +13,24 @@ const habitSchema = z.object({
   cadence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).default("DAILY"),
   targetPerPeriod: z.coerce.number().int().min(1).max(365).default(1),
   color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).default("#111827"),
-  icon: z.string().trim().min(2).max(40).default("sparkles")
+  icon: z.string().trim().min(2).max(40).default("sparkles"),
+  subHabits: z.array(z.string().trim().min(2).max(100)).max(12).default([])
 });
 
-const habitUpdateSchema = habitSchema.partial().extend({
+const habitUpdateSchema = habitSchema.omit({ subHabits: true }).partial().extend({
   archived: z.boolean().optional()
 });
 
 const logSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => toDateKey()),
-  value: z.coerce.number().int().min(1).max(100).default(1),
+  value: z.coerce.number().int().min(0).max(100).default(1),
   note: z.string().trim().max(400).optional().nullable(),
   mood: z.coerce.number().int().min(1).max(5).optional().nullable(),
   energy: z.coerce.number().int().min(1).max(5).optional().nullable()
+});
+
+const subHabitSchema = z.object({
+  title: z.string().trim().min(2).max(100)
 });
 
 router.use(requireAuth);
@@ -40,6 +45,15 @@ router.get(
         logs: {
           where: { date: toDateKey() },
           take: 1
+        },
+        subHabits: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          include: {
+            logs: {
+              where: { date: toDateKey() },
+              take: 1
+            }
+          }
         }
       }
     });
@@ -55,7 +69,26 @@ router.post(
     const habit = await prisma.habit.create({
       data: {
         userId: req.user.id,
-        ...input
+        title: input.title,
+        category: input.category,
+        cadence: input.cadence,
+        targetPerPeriod: input.targetPerPeriod,
+        color: input.color,
+        icon: input.icon,
+        subHabits: {
+          create: input.subHabits.map((title, index) => ({
+            userId: req.user.id,
+            title,
+            sortOrder: index
+          }))
+        }
+      },
+      include: {
+        subHabits: true,
+        logs: {
+          where: { date: toDateKey() },
+          take: 1
+        }
       }
     });
 
@@ -120,6 +153,109 @@ router.post(
       create: {
         userId: req.user.id,
         habitId: habit.id,
+        ...input
+      }
+    });
+
+    return res.json({ log });
+  })
+);
+
+router.post(
+  "/:id/subhabits",
+  asyncHandler(async (req, res) => {
+    const input = subHabitSchema.parse(req.body);
+    const habit = await prisma.habit.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+      include: { subHabits: true }
+    });
+
+    if (!habit) {
+      return res.status(404).json({ message: "Habit not found." });
+    }
+
+    const subHabit = await prisma.subHabit.create({
+      data: {
+        userId: req.user.id,
+        habitId: habit.id,
+        title: input.title,
+        sortOrder: habit.subHabits.length
+      }
+    });
+
+    return res.status(201).json({ subHabit });
+  })
+);
+
+router.patch(
+  "/:id/subhabits/:subHabitId",
+  asyncHandler(async (req, res) => {
+    const input = subHabitSchema.partial().parse(req.body);
+    const subHabit = await prisma.subHabit.updateMany({
+      where: {
+        id: req.params.subHabitId,
+        habitId: req.params.id,
+        userId: req.user.id
+      },
+      data: input
+    });
+
+    if (!subHabit.count) {
+      return res.status(404).json({ message: "Sub-habit not found." });
+    }
+
+    const updated = await prisma.subHabit.findUnique({ where: { id: req.params.subHabitId } });
+    return res.json({ subHabit: updated });
+  })
+);
+
+router.delete(
+  "/:id/subhabits/:subHabitId",
+  asyncHandler(async (req, res) => {
+    const result = await prisma.subHabit.deleteMany({
+      where: {
+        id: req.params.subHabitId,
+        habitId: req.params.id,
+        userId: req.user.id
+      }
+    });
+
+    if (!result.count) {
+      return res.status(404).json({ message: "Sub-habit not found." });
+    }
+
+    return res.status(204).send();
+  })
+);
+
+router.post(
+  "/:id/subhabits/:subHabitId/logs",
+  asyncHandler(async (req, res) => {
+    const input = logSchema.pick({ date: true, value: true }).parse(req.body);
+    const subHabit = await prisma.subHabit.findFirst({
+      where: {
+        id: req.params.subHabitId,
+        habitId: req.params.id,
+        userId: req.user.id
+      }
+    });
+
+    if (!subHabit) {
+      return res.status(404).json({ message: "Sub-habit not found." });
+    }
+
+    const log = await prisma.subHabitLog.upsert({
+      where: {
+        userId_subHabitId_date: {
+          userId: req.user.id,
+          subHabitId: subHabit.id,
+          date: input.date
+        }
+      },
+      update: input,
+      create: {
+        userId: req.user.id,
+        subHabitId: subHabit.id,
         ...input
       }
     });

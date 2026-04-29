@@ -28,6 +28,10 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><h6 class="dropdown-header" id="accountName">Account</h6></li>
+              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person-circle me-2"></i>Profile</button></li>
+              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-calendar3 me-2"></i>Monthly analytics</button></li>
+              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reminderModal"><i class="bi bi-bell me-2"></i>Reminders</button></li>
+              <li><hr class="dropdown-divider"></li>
               <li><button class="dropdown-item" id="logoutButton"><i class="bi bi-box-arrow-right me-2"></i>Logout</button></li>
             </ul>
           </div>
@@ -98,6 +102,28 @@
           </div>
         </div>
       </section>
+
+      <section class="row g-4 mt-1">
+        <div class="col-xl-7">
+          <div class="surface">
+            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+              <div>
+                <p class="eyebrow mb-1">Monthly analytics</p>
+                <h2 class="h5 fw-bold mb-0">30-day progress map</h2>
+              </div>
+              <span class="mini-pill"><i class="bi bi-activity"></i><span id="monthlySummary">0 active days</span></span>
+            </div>
+            <div id="monthlyChart" class="monthly-chart"></div>
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="surface">
+            <p class="eyebrow mb-1">Milestones</p>
+            <h2 class="h5 fw-bold mb-3">Wins and next target</h2>
+            <div id="milestoneList" class="vstack gap-3"></div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <div class="modal fade" id="habitModal" tabindex="-1" aria-hidden="true">
@@ -142,6 +168,11 @@
                   <option value="target">Target</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label class="form-label" for="habitSubHabits">Sub-habits</label>
+              <textarea class="form-control" id="habitSubHabits" rows="3" placeholder="Warm up&#10;Main work&#10;Stretch"></textarea>
+              <div class="form-text">Optional. Put each sub-habit on a new line.</div>
             </div>
           </div>
           <div class="modal-footer">
@@ -194,6 +225,58 @@
             <button type="submit" class="btn btn-dark">Create</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title h5">Profile and analytics</h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="profilePanel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="reminderModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="reminderForm">
+          <div class="modal-header">
+            <h3 class="modal-title h5">Daily reminder</h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body vstack gap-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="reminderEnabled">
+              <label class="form-check-label" for="reminderEnabled">Remind me to log daily entries</label>
+            </div>
+            <div>
+              <label class="form-label" for="reminderTime">Reminder time</label>
+              <input class="form-control" type="time" id="reminderTime" value="20:00">
+            </div>
+            <p class="text-secondary small mb-0">Browser notifications work while this app is open in your browser. For phone push notifications, the app would need a PWA/service-worker upgrade.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-dark">Save reminder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal fade" id="celebrationModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content celebration-card text-center">
+          <div class="modal-body p-4">
+            <div class="celebration-icon mx-auto mb-3"><i class="bi bi-trophy"></i></div>
+            <h3 class="h4 fw-black" id="celebrationTitle">Milestone reached</h3>
+            <p class="text-secondary mb-0" id="celebrationBody">Congratulations. Your consistency is paying off.</p>
+          </div>
+        </div>
       </div>
     </div>
 
