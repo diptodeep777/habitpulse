@@ -12,6 +12,7 @@ const habitSchema = z.object({
   category: z.string().trim().min(2).max(60).default("Lifestyle"),
   cadence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).default("DAILY"),
   targetPerPeriod: z.coerce.number().int().min(1).max(365).default(1),
+  frequencyDays: z.string().trim().regex(/^[0-6](,[0-6])*$/).default("0,1,2,3,4,5,6"),
   color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).default("#111827"),
   icon: z.string().trim().min(2).max(40).default("sparkles"),
   subHabits: z.array(z.string().trim().min(2).max(100)).max(12).default([])
@@ -32,6 +33,52 @@ const logSchema = z.object({
 const subHabitSchema = z.object({
   title: z.string().trim().min(2).max(100)
 });
+
+async function syncParentHabitLog({ userId, habitId, date }) {
+  const subHabits = await prisma.subHabit.findMany({
+    where: { userId, habitId },
+    include: {
+      logs: {
+        where: { date },
+        take: 1
+      }
+    }
+  });
+
+  if (!subHabits.length) return;
+
+  const completed = subHabits.filter((subHabit) =>
+    subHabit.logs.some((log) => log.value > 0)
+  ).length;
+
+  if (completed > 0) {
+    await prisma.habitLog.upsert({
+      where: {
+        userId_habitId_date: {
+          userId,
+          habitId,
+          date
+        }
+      },
+      update: { value: 1 },
+      create: {
+        userId,
+        habitId,
+        date,
+        value: 1
+      }
+    });
+    return;
+  }
+
+  await prisma.habitLog.deleteMany({
+    where: {
+      userId,
+      habitId,
+      date
+    }
+  });
+}
 
 router.use(requireAuth);
 
@@ -73,6 +120,7 @@ router.post(
         category: input.category,
         cadence: input.cadence,
         targetPerPeriod: input.targetPerPeriod,
+        frequencyDays: input.frequencyDays,
         color: input.color,
         icon: input.icon,
         subHabits: {
@@ -258,6 +306,12 @@ router.post(
         subHabitId: subHabit.id,
         ...input
       }
+    });
+
+    await syncParentHabitLog({
+      userId: req.user.id,
+      habitId: req.params.id,
+      date: input.date
     });
 
     return res.json({ log });

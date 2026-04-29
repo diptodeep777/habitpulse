@@ -9,125 +9,205 @@
     <link href="/assets/styles.css" rel="stylesheet">
   </head>
   <body class="app-shell">
-    <nav class="navbar navbar-expand-lg sticky-top glass-nav">
-      <div class="container-fluid px-3 px-lg-4">
-        <a class="navbar-brand brand-mark" href="/app.html">
+    <div class="app-layout">
+      <aside class="side-nav">
+        <a class="brand-mark mb-4" href="/app.html">
           <span class="brand-icon"><i class="bi bi-stars"></i></span>
           <span>HabitPulse</span>
         </a>
-        <div class="d-flex align-items-center gap-2 ms-auto">
-          <button class="btn btn-light icon-btn" data-bs-toggle="modal" data-bs-target="#habitModal" title="Add habit" aria-label="Add habit">
-            <i class="bi bi-plus-lg"></i>
-          </button>
-          <button class="btn btn-dark icon-btn" data-bs-toggle="modal" data-bs-target="#goalModal" title="Add goal" aria-label="Add goal">
-            <i class="bi bi-bullseye"></i>
-          </button>
-          <div class="dropdown">
-            <button class="btn avatar-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account">
-              <span id="avatarInitial">U</span>
+        <nav class="nav-menu" aria-label="Dashboard">
+          <button class="nav-link active" data-page="today"><i class="bi bi-grid-1x2"></i><span>Today</span></button>
+          <button class="nav-link" data-page="habits"><i class="bi bi-check2-square"></i><span>Habits</span></button>
+          <button class="nav-link" data-page="progress"><i class="bi bi-calendar3"></i><span>Progress</span></button>
+          <button class="nav-link" data-page="goals"><i class="bi bi-bullseye"></i><span>Goals</span></button>
+          <button class="nav-link" data-page="profile"><i class="bi bi-person-circle"></i><span>Profile</span></button>
+          <button class="nav-link" data-page="reminders"><i class="bi bi-bell"></i><span>Reminders</span></button>
+        </nav>
+      </aside>
+
+      <div class="main-shell">
+        <header class="top-bar">
+          <div>
+            <p class="eyebrow mb-1" id="pageEyebrow">Today</p>
+            <h1 class="h4 fw-black mb-0" id="pageTitle">Daily command center</h1>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+              <i class="bi bi-moon-stars"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-              <li><h6 class="dropdown-header" id="accountName">Account</h6></li>
-              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person-circle me-2"></i>Profile</button></li>
-              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-calendar3 me-2"></i>Monthly analytics</button></li>
-              <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reminderModal"><i class="bi bi-bell me-2"></i>Reminders</button></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><button class="dropdown-item" id="logoutButton"><i class="bi bi-box-arrow-right me-2"></i>Logout</button></li>
-            </ul>
+            <button class="btn btn-light icon-btn" data-bs-toggle="modal" data-bs-target="#habitModal" title="Add habit" aria-label="Add habit">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            <button class="btn btn-dark icon-btn" data-bs-toggle="modal" data-bs-target="#goalModal" title="Add goal" aria-label="Add goal">
+              <i class="bi bi-bullseye"></i>
+            </button>
+            <div class="dropdown">
+              <button class="btn avatar-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account">
+                <span id="avatarInitial">U</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><h6 class="dropdown-header" id="accountName">Account</h6></li>
+                <li><button class="dropdown-item" data-page-jump="profile"><i class="bi bi-person-circle me-2"></i>Profile</button></li>
+                <li><button class="dropdown-item" data-page-jump="progress"><i class="bi bi-calendar3 me-2"></i>Monthly progress</button></li>
+                <li><button class="dropdown-item" data-page-jump="reminders"><i class="bi bi-bell me-2"></i>Reminders</button></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item" id="logoutButton"><i class="bi bi-box-arrow-right me-2"></i>Logout</button></li>
+              </ul>
+            </div>
           </div>
-        </div>
+        </header>
+
+        <main class="page-stack">
+          <section class="app-page active" data-page-panel="today">
+            <div class="dashboard-hero motion-fade">
+              <div>
+                <p class="eyebrow mb-2">Today</p>
+                <h2 id="heroTitle" class="h2 fw-black mb-2">Your habit system is loading.</h2>
+                <p id="heroSub" class="text-secondary mb-0">Give it a second while the dashboard syncs.</p>
+              </div>
+              <div class="hero-score">
+                <span id="completionRate">0%</span>
+                <small>scheduled progress</small>
+              </div>
+            </div>
+            <section class="row g-3 mt-1" id="statsGrid"></section>
+            <section class="row g-4 mt-1">
+              <div class="col-xl-8">
+                <div class="surface">
+                  <div class="section-head">
+                    <div>
+                      <p class="eyebrow mb-1">Daily tracker</p>
+                      <h2 class="h5 fw-bold mb-0">Today’s habits</h2>
+                    </div>
+                    <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#habitModal">
+                      <i class="bi bi-plus-lg"></i> Habit
+                    </button>
+                  </div>
+                  <div id="todayHabitList" class="habit-grid"></div>
+                </div>
+              </div>
+              <div class="col-xl-4">
+                <div class="surface h-100">
+                  <p class="eyebrow mb-1">Coach</p>
+                  <h2 class="h5 fw-bold mb-3">Next best moves</h2>
+                  <div id="suggestionsList" class="vstack gap-3"></div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="app-page" data-page-panel="habits">
+            <div class="surface">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow mb-1">Habits</p>
+                  <h2 class="h5 fw-bold mb-0">All active habits</h2>
+                </div>
+                <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#habitModal">
+                  <i class="bi bi-plus-lg"></i> New
+                </button>
+              </div>
+              <div id="habitList" class="habit-grid"></div>
+            </div>
+          </section>
+
+          <section class="app-page" data-page-panel="progress">
+            <div class="row g-4">
+              <div class="col-xl-7">
+                <div class="surface">
+                  <div class="section-head">
+                    <div>
+                      <p class="eyebrow mb-1">Monthly progress</p>
+                      <h2 class="h5 fw-bold mb-0">Calendar view</h2>
+                    </div>
+                    <span class="mini-pill"><i class="bi bi-activity"></i><span id="monthlySummary">0 active days</span></span>
+                  </div>
+                  <div class="calendar-grid" id="monthlyCalendar"></div>
+                </div>
+              </div>
+              <div class="col-xl-5">
+                <div class="surface">
+                  <p class="eyebrow mb-1">Activity</p>
+                  <h2 class="h5 fw-bold mb-3">Weekly rhythm</h2>
+                  <div id="weeklyChart" class="weekly-chart"></div>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="surface">
+                  <p class="eyebrow mb-1">To do's</p>
+                  <h2 class="h5 fw-bold mb-3">Completion by work item</h2>
+                  <div id="todoProgressList" class="todo-progress-grid"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-page" data-page-panel="goals">
+            <div class="row g-4">
+              <div class="col-xl-7">
+                <div class="surface">
+                  <div class="section-head">
+                    <div>
+                      <p class="eyebrow mb-1">Goals</p>
+                      <h2 class="h5 fw-bold mb-0">Daily, monthly, yearly</h2>
+                    </div>
+                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#goalModal">
+                      <i class="bi bi-plus-lg"></i> Goal
+                    </button>
+                  </div>
+                  <div id="goalList" class="vstack gap-3"></div>
+                </div>
+              </div>
+              <div class="col-xl-5">
+                <div class="surface">
+                  <p class="eyebrow mb-1">Milestones</p>
+                  <h2 class="h5 fw-bold mb-3">Wins and next target</h2>
+                  <div id="milestoneList" class="vstack gap-3"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-page" data-page-panel="profile">
+            <div id="profilePanel"></div>
+          </section>
+
+          <section class="app-page" data-page-panel="reminders">
+            <div class="surface reminder-surface">
+              <form id="reminderForm">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow mb-1">Reminders</p>
+                    <h2 class="h5 fw-bold mb-0">Daily entry notification</h2>
+                  </div>
+                  <button class="btn btn-dark" type="submit">Save</button>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="setting-block">
+                      <div>
+                        <label class="form-check-label fw-bold" for="reminderEnabled">Reminder status</label>
+                        <p class="text-secondary small mb-0">Browser notification while app is open</p>
+                      </div>
+                      <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="reminderEnabled">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="reminderTime">Reminder time</label>
+                    <input class="form-control" type="time" id="reminderTime" value="20:00">
+                  </div>
+                </div>
+              </form>
+            </div>
+          </section>
+        </main>
       </div>
-    </nav>
-
-    <main class="container-fluid px-3 px-lg-4 py-4">
-      <section class="dashboard-hero mb-4 motion-fade">
-        <div>
-          <p class="eyebrow mb-2">Today</p>
-          <h1 id="heroTitle" class="h2 fw-black mb-2">Your habit system is loading.</h1>
-          <p id="heroSub" class="text-secondary mb-0">Give it a second while the dashboard syncs.</p>
-        </div>
-        <div class="hero-score">
-          <span id="completionRate">0%</span>
-          <small>30-day consistency</small>
-        </div>
-      </section>
-
-      <section class="row g-3 mb-4" id="statsGrid"></section>
-
-      <section class="row g-4">
-        <div class="col-xl-8">
-          <div class="surface">
-            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-              <div>
-                <p class="eyebrow mb-1">Daily tracker</p>
-                <h2 class="h5 fw-bold mb-0">Habits</h2>
-              </div>
-              <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#habitModal">
-                <i class="bi bi-plus-lg"></i> Habit
-              </button>
-            </div>
-            <div id="habitList" class="habit-grid"></div>
-          </div>
-        </div>
-
-        <div class="col-xl-4">
-          <div class="surface h-100">
-            <p class="eyebrow mb-1">Suggestions</p>
-            <h2 class="h5 fw-bold mb-3">Next best moves</h2>
-            <div id="suggestionsList" class="vstack gap-3"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="row g-4 mt-1">
-        <div class="col-xl-7">
-          <div class="surface">
-            <p class="eyebrow mb-1">Activity</p>
-            <h2 class="h5 fw-bold mb-3">Weekly rhythm</h2>
-            <div id="weeklyChart" class="weekly-chart"></div>
-          </div>
-        </div>
-        <div class="col-xl-5">
-          <div class="surface">
-            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-              <div>
-                <p class="eyebrow mb-1">Goals</p>
-                <h2 class="h5 fw-bold mb-0">Daily, monthly, yearly</h2>
-              </div>
-              <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#goalModal">
-                <i class="bi bi-plus-lg"></i> Goal
-              </button>
-            </div>
-            <div id="goalList" class="vstack gap-3"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="row g-4 mt-1">
-        <div class="col-xl-7">
-          <div class="surface">
-            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-              <div>
-                <p class="eyebrow mb-1">Monthly analytics</p>
-                <h2 class="h5 fw-bold mb-0">30-day progress map</h2>
-              </div>
-              <span class="mini-pill"><i class="bi bi-activity"></i><span id="monthlySummary">0 active days</span></span>
-            </div>
-            <div id="monthlyChart" class="monthly-chart"></div>
-          </div>
-        </div>
-        <div class="col-xl-5">
-          <div class="surface">
-            <p class="eyebrow mb-1">Milestones</p>
-            <h2 class="h5 fw-bold mb-3">Wins and next target</h2>
-            <div id="milestoneList" class="vstack gap-3"></div>
-          </div>
-        </div>
-      </section>
-    </main>
+    </div>
 
     <div class="modal fade" id="habitModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
         <form class="modal-content" id="habitForm">
           <div class="modal-header">
             <h3 class="modal-title h5">New habit</h3>
@@ -136,7 +216,7 @@
           <div class="modal-body vstack gap-3">
             <div>
               <label class="form-label" for="habitTitle">Habit</label>
-              <input class="form-control" id="habitTitle" required maxlength="100" placeholder="Workout, study, meditate">
+              <input class="form-control" id="habitTitle" required maxlength="100" placeholder="Gym, study, meditate">
             </div>
             <div class="row g-3">
               <div class="col-sm-6">
@@ -144,11 +224,16 @@
                 <input class="form-control" id="habitCategory" value="Lifestyle" maxlength="60">
               </div>
               <div class="col-sm-6">
-                <label class="form-label" for="habitCadence">Cadence</label>
-                <select class="form-select" id="habitCadence">
-                  <option value="DAILY">Daily</option>
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY">Monthly</option>
+                <label class="form-label" for="habitIcon">Icon</label>
+                <select class="form-select" id="habitIcon">
+                  <option value="activity">Activity</option>
+                  <option value="book">Study</option>
+                  <option value="backpack">School</option>
+                  <option value="bicycle">Gym</option>
+                  <option value="heart-pulse">Health</option>
+                  <option value="moon-stars">Sleep</option>
+                  <option value="target">Target</option>
+                  <option value="cup-hot">Coffee</option>
                 </select>
               </div>
             </div>
@@ -158,21 +243,21 @@
                 <input class="form-control form-control-color w-100" id="habitColor" type="color" value="#111827">
               </div>
               <div class="col-sm-6">
-                <label class="form-label" for="habitIcon">Icon</label>
-                <select class="form-select" id="habitIcon">
-                  <option value="activity">Activity</option>
-                  <option value="book">Book</option>
-                  <option value="cup-hot">Coffee</option>
-                  <option value="heart-pulse">Health</option>
-                  <option value="moon-stars">Sleep</option>
-                  <option value="target">Target</option>
-                </select>
+                <label class="form-label">Frequency</label>
+                <div class="weekday-picker" id="frequencyPicker">
+                  <label><input type="checkbox" value="1" checked><span>Mon</span></label>
+                  <label><input type="checkbox" value="2" checked><span>Tue</span></label>
+                  <label><input type="checkbox" value="3" checked><span>Wed</span></label>
+                  <label><input type="checkbox" value="4" checked><span>Thu</span></label>
+                  <label><input type="checkbox" value="5" checked><span>Fri</span></label>
+                  <label><input type="checkbox" value="6"><span>Sat</span></label>
+                  <label><input type="checkbox" value="0"><span>Sun</span></label>
+                </div>
               </div>
             </div>
             <div>
-              <label class="form-label" for="habitSubHabits">Sub-habits</label>
-              <textarea class="form-control" id="habitSubHabits" rows="3" placeholder="Warm up&#10;Main work&#10;Stretch"></textarea>
-              <div class="form-text">Optional. Put each sub-habit on a new line.</div>
+              <label class="form-label" for="habitSubHabits">To do's</label>
+              <textarea class="form-control" id="habitSubHabits" rows="3" placeholder="Warm up&#10;Main sets&#10;Stretch"></textarea>
             </div>
           </div>
           <div class="modal-footer">
@@ -223,46 +308,6 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-dark">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title h5">Profile and analytics</h3>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div id="profilePanel"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="reminderModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" id="reminderForm">
-          <div class="modal-header">
-            <h3 class="modal-title h5">Daily reminder</h3>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body vstack gap-3">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" role="switch" id="reminderEnabled">
-              <label class="form-check-label" for="reminderEnabled">Remind me to log daily entries</label>
-            </div>
-            <div>
-              <label class="form-label" for="reminderTime">Reminder time</label>
-              <input class="form-control" type="time" id="reminderTime" value="20:00">
-            </div>
-            <p class="text-secondary small mb-0">Browser notifications work while this app is open in your browser. For phone push notifications, the app would need a PWA/service-worker upgrade.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-dark">Save reminder</button>
           </div>
         </form>
       </div>

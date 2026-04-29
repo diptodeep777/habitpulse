@@ -12,6 +12,23 @@ function calculateStreak(logsByDate) {
   return streak;
 }
 
+function weekdayIndex(dateKey) {
+  return new Date(`${dateKey}T00:00:00Z`).getUTCDay();
+}
+
+function frequencySet(habit) {
+  return new Set(
+    String(habit.frequencyDays || "0,1,2,3,4,5,6")
+      .split(",")
+      .map((day) => Number(day))
+      .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+  );
+}
+
+function isScheduled(habit, dateKey) {
+  return frequencySet(habit).has(weekdayIndex(dateKey));
+}
+
 function buildSuggestions({ activeHabits, logs, goals, completionRate, streak, missedToday }) {
   const suggestions = [];
   const today = toDateKey();
@@ -21,7 +38,9 @@ function buildSuggestions({ activeHabits, logs, goals, completionRate, streak, m
   const markedNotDone = new Set(
     logs.filter((log) => log.date === today && log.value === 0).map((log) => log.habitId)
   );
-  const missedHabits = activeHabits.filter((habit) => !checkedToday.has(habit.id));
+  const missedHabits = activeHabits.filter(
+    (habit) => isScheduled(habit, today) && !checkedToday.has(habit.id)
+  );
 
   if (markedNotDone.size > 0) {
     suggestions.push({
@@ -127,6 +146,7 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
   const logsByHabit = new Map();
   const missesByDate = new Map();
   const subLogsByDate = new Map();
+  const subHabitById = new Map(subHabits.map((subHabit) => [subHabit.id, subHabit]));
 
   for (const log of logs) {
     if (log.value > 0) {
@@ -143,28 +163,67 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
     }
   }
 
-  const expectedThirty = Math.max(activeHabits.length * 30, 1);
-  const completedThirty = logs.filter((log) => lastThirty.includes(log.date) && log.value > 0).length;
+  const expectedThirty = Math.max(
+    lastThirty.reduce(
+      (total, date) => total + activeHabits.filter((habit) => isScheduled(habit, date)).length,
+      0
+    ),
+    1
+  );
+  const completedThirty = logs.filter((log) => {
+    const habit = activeHabits.find((item) => item.id === log.habitId);
+    return habit && lastThirty.includes(log.date) && log.value > 0 && isScheduled(habit, log.date);
+  }).length;
   const completionRate = Math.round((completedThirty / expectedThirty) * 100);
   const today = toDateKey();
-  const checkedToday = logs.filter((log) => log.date === today && log.value > 0).length;
-  const missedToday = logs.filter((log) => log.date === today && log.value === 0).length;
+  const todayHabits = activeHabits.filter((habit) => isScheduled(habit, today));
+  const checkedToday = logs.filter((log) => {
+    const habit = todayHabits.find((item) => item.id === log.habitId);
+    return habit && log.date === today && log.value > 0;
+  }).length;
+  const missedToday = logs.filter((log) => {
+    const habit = todayHabits.find((item) => item.id === log.habitId);
+    return habit && log.date === today && log.value === 0;
+  }).length;
   const streak = calculateStreak(logsByDate);
 
-  const weekly = lastSeven.map((date) => ({
-    date,
-    count: logsByDate.get(date) || 0,
-    missed: missesByDate.get(date) || 0,
-    target: activeHabits.length
-  }));
+  const weekly = lastSeven.map((date) => {
+    const scheduledHabits = activeHabits.filter((habit) => isScheduled(habit, date));
+    const todoTotal = subHabits.filter((subHabit) => {
+      const habit = activeHabits.find((item) => item.id === subHabit.habitId);
+      return habit && isScheduled(habit, date);
+    }).length;
 
-  const monthly = lastThirty.map((date) => ({
-    date,
-    count: logsByDate.get(date) || 0,
-    missed: missesByDate.get(date) || 0,
-    subCompleted: subLogsByDate.get(date) || 0,
-    target: activeHabits.length
-  }));
+    return {
+      date,
+      count: logsByDate.get(date) || 0,
+      missed: missesByDate.get(date) || 0,
+      subCompleted: subLogsByDate.get(date) || 0,
+      todoTotal,
+      target: scheduledHabits.length
+    };
+  });
+
+  const monthly = lastThirty.map((date) => {
+    const scheduledHabits = activeHabits.filter((habit) => isScheduled(habit, date));
+    const todoTotal = subHabits.filter((subHabit) => {
+      const habit = activeHabits.find((item) => item.id === subHabit.habitId);
+      return habit && isScheduled(habit, date);
+    }).length;
+    const count = logsByDate.get(date) || 0;
+    const subCompleted = subLogsByDate.get(date) || 0;
+
+    return {
+      date,
+      count,
+      missed: missesByDate.get(date) || 0,
+      subCompleted,
+      todoTotal,
+      target: scheduledHabits.length,
+      habitPercent: scheduledHabits.length ? Math.round((count / scheduledHabits.length) * 100) : 100,
+      todoPercent: todoTotal ? Math.round((subCompleted / todoTotal) * 100) : 100
+    };
+  });
 
   const categories = activeHabits.reduce((acc, habit) => {
     const existing = acc[habit.category] || { category: habit.category, habits: 0, completions: 0 };
@@ -188,6 +247,7 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
   return {
     stats: {
       activeHabits: activeHabits.length,
+      scheduledToday: todayHabits.length,
       checkedToday,
       missedToday,
       completionRate: Math.min(completionRate, 100),
@@ -217,5 +277,6 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
 }
 
 module.exports = {
-  summarizeHabits
+  summarizeHabits,
+  isScheduled
 };
