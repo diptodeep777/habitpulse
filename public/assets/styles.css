@@ -1,26 +1,27 @@
 :root {
-  --ink: #121826;
+  --ink: #111827;
   --muted: #667085;
-  --line: #e4e7ec;
+  --line: #d9e2ef;
   --paper: #ffffff;
-  --wash: #f5f7fb;
-  --surface: rgba(255, 255, 255, 0.92);
+  --wash: #eef6ff;
+  --surface: rgba(255, 255, 255, 0.86);
+  --blue: #2563eb;
+  --cyan: #0ea5e9;
   --green: #16a34a;
   --red: #ef4444;
-  --blue: #2563eb;
   --amber: #f59e0b;
   --violet: #7c3aed;
-  --shadow: 0 18px 60px rgba(18, 24, 38, 0.08);
+  --shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
 }
 
 :root[data-theme="dark"] {
   --ink: #f8fafc;
-  --muted: #94a3b8;
-  --line: #233047;
+  --muted: #9fb0c7;
+  --line: #25344d;
   --paper: #111827;
-  --wash: #080d16;
-  --surface: rgba(17, 24, 39, 0.92);
-  --shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  --wash: #08111f;
+  --surface: rgba(15, 23, 42, 0.88);
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -38,10 +39,24 @@ body {
 
 .app-shell {
   background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 34%),
-    radial-gradient(circle at bottom left, rgba(22, 163, 74, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(37, 99, 235, 0.1), transparent 38%),
+    linear-gradient(315deg, rgba(14, 165, 233, 0.1), transparent 34%),
     var(--wash);
   min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.app-shell::before {
+  animation: driftGrid 18s linear infinite;
+  background:
+    repeating-linear-gradient(90deg, rgba(37, 99, 235, 0.055) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, rgba(14, 165, 233, 0.05) 0 1px, transparent 1px 72px);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
 }
 
 .auth-shell {
@@ -59,12 +74,15 @@ body {
 }
 
 .side-nav {
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent 42%),
+    var(--surface);
+  backdrop-filter: blur(18px);
   border-right: 1px solid var(--line);
+  height: 100vh;
   padding: 1.25rem;
   position: sticky;
   top: 0;
-  height: 100vh;
 }
 
 .main-shell {
@@ -73,7 +91,7 @@ body {
 
 .top-bar {
   align-items: center;
-  background: rgba(245, 247, 251, 0.78);
+  background: rgba(238, 246, 255, 0.82);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -86,7 +104,7 @@ body {
 }
 
 :root[data-theme="dark"] .top-bar {
-  background: rgba(8, 13, 22, 0.78);
+  background: rgba(8, 17, 31, 0.82);
 }
 
 .page-stack {
@@ -98,6 +116,7 @@ body {
 }
 
 .app-page.active {
+  animation: fadeLift 260ms ease;
   display: block;
 }
 
@@ -122,8 +141,8 @@ body {
 
 .brand-icon {
   align-items: center;
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
   display: inline-flex;
   height: 42px;
   justify-content: center;
@@ -151,14 +170,17 @@ body {
 
 .nav-menu .nav-link.active,
 .nav-menu .nav-link:hover {
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
 }
 
 .auth-card,
 .surface,
 .dashboard-hero {
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent),
+    var(--surface);
+  backdrop-filter: blur(18px);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow);
@@ -182,14 +204,15 @@ body {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  min-height: 172px;
+  min-height: 174px;
   overflow: hidden;
   padding: clamp(1.25rem, 3vw, 2rem);
   position: relative;
 }
 
 .dashboard-hero::after {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(22, 163, 74, 0.25), rgba(124, 58, 237, 0.22));
+  animation: slideSheen 8s ease-in-out infinite alternate;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.34), rgba(14, 165, 233, 0.28), rgba(124, 58, 237, 0.18));
   content: "";
   height: 100%;
   position: absolute;
@@ -206,8 +229,8 @@ body {
 
 .hero-score {
   align-items: center;
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(160deg, #0f172a, var(--blue));
+  color: white;
   display: flex;
   flex: 0 0 136px;
   flex-direction: column;
@@ -248,6 +271,18 @@ body {
   color: var(--ink);
 }
 
+.btn-outline-dark {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.btn-outline-dark:hover,
+.btn-dark {
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-color: transparent;
+  color: white;
+}
+
 .dropdown-item {
   color: var(--ink);
 }
@@ -268,17 +303,6 @@ body {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 8px;
-}
-
-.stat-card,
-.habit-card,
-.goal-card,
-.suggestion-card,
-.milestone-card,
-.profile-card,
-.todo-progress-card,
-.calendar-cell,
-.setting-block {
   padding: 1rem;
 }
 
@@ -302,7 +326,7 @@ body {
 
 .stat-icon {
   align-items: center;
-  background: #eef2ff;
+  background: #dbeafe;
   color: var(--blue);
   display: inline-flex;
   height: 42px;
@@ -411,7 +435,7 @@ body {
 }
 
 .status-open {
-  background: #eff6ff;
+  background: #dbeafe;
   color: #1d4ed8;
 }
 
@@ -428,7 +452,7 @@ body {
 }
 
 .mini-progress span {
-  background: linear-gradient(90deg, var(--blue), var(--green));
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
   display: block;
   height: 100%;
 }
@@ -444,16 +468,19 @@ body {
   background: rgba(148, 163, 184, 0.08);
   border: 1px solid var(--line);
   border-radius: 8px;
+  color: var(--ink);
   display: grid;
   gap: 0.5rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 48px;
   padding: 0.55rem;
+  text-align: left;
+  width: 100%;
 }
 
 .todo-block.done {
-  background: #ecfdf3;
-  border-color: #bbf7d0;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.14), rgba(37, 99, 235, 0.08));
+  border-color: rgba(22, 163, 74, 0.34);
 }
 
 :root[data-theme="dark"] .todo-block.done,
@@ -465,25 +492,16 @@ body {
 
 .todo-block span {
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 800;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.todo-toggle,
-.todo-delete {
-  align-items: center;
-  background: transparent;
-  border: 0;
+.todo-block i {
   color: var(--muted);
-  display: inline-flex;
-  height: 28px;
-  justify-content: center;
-  padding: 0;
-  width: 28px;
 }
 
-.todo-block.done .todo-toggle {
+.todo-block.done i {
   color: var(--green);
 }
 
@@ -535,7 +553,6 @@ body {
   background: rgba(148, 163, 184, 0.16);
   border-radius: 8px;
   display: flex;
-  gap: 0.25rem;
   height: 164px;
   justify-content: center;
   overflow: hidden;
@@ -545,31 +562,71 @@ body {
 .bar {
   border-radius: 8px 8px 4px 4px;
   transition: height 420ms ease;
-  width: 42%;
+  width: 70%;
 }
 
-.bar-done {
-  background: linear-gradient(180deg, #60a5fa, var(--blue));
-}
-
-.bar-todo {
-  background: linear-gradient(180deg, #86efac, var(--green));
+.bar-water {
+  background: linear-gradient(180deg, #7dd3fc, var(--blue));
+  box-shadow: 0 -10px 24px rgba(37, 99, 235, 0.24);
 }
 
 .calendar-grid {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(96px, 1fr));
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
 }
 
 .calendar-cell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--paper);
   display: grid;
   gap: 0.7rem;
   min-height: 132px;
+  overflow: hidden;
+  position: relative;
 }
 
 .calendar-cell.is-full {
-  border-color: #86efac;
+  border-color: rgba(37, 99, 235, 0.42);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.16);
+}
+
+.calendar-blank {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-height: 0;
+  visibility: hidden;
+}
+
+.calendar-cell > *:not(.water-fill) {
+  position: relative;
+  z-index: 1;
+}
+
+.water-fill {
+  animation: waterRise 580ms ease both;
+  background:
+    linear-gradient(180deg, rgba(125, 211, 252, 0.7), rgba(37, 99, 235, 0.68)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0 10px, transparent 10px 24px);
+  bottom: 0;
+  left: 0;
+  min-height: 0;
+  opacity: 0.9;
+  position: absolute;
+  right: 0;
+}
+
+.water-fill::after {
+  animation: waterWave 3.4s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  content: "";
+  height: 28px;
+  left: -35%;
+  position: absolute;
+  right: -35%;
+  top: -14px;
 }
 
 .calendar-date {
@@ -595,6 +652,7 @@ body {
   display: block;
   font-size: 1.45rem;
   line-height: 1;
+  min-height: 1.45rem;
 }
 
 .todo-checks {
@@ -604,7 +662,7 @@ body {
 }
 
 .todo-checks .bi-check-circle-fill {
-  color: var(--green);
+  color: var(--blue);
 }
 
 .todo-progress-grid,
@@ -662,8 +720,8 @@ body {
 
 .avatar-btn {
   align-items: center;
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
   display: inline-flex;
   font-weight: 900;
   height: 42px;
@@ -685,8 +743,8 @@ body {
 .avatar-large,
 .celebration-icon {
   align-items: center;
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
   display: inline-flex;
   font-size: 2rem;
   font-weight: 900;
@@ -739,9 +797,30 @@ body {
 }
 
 .weekday-picker input:checked + span {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-color: transparent;
+  color: white;
+}
+
+.date-chip-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-height: 34px;
+}
+
+.date-chip {
+  align-items: center;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 8px;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 800;
+  gap: 0.35rem;
+  padding: 0.38rem 0.55rem;
 }
 
 .mini-pill {
@@ -776,7 +855,18 @@ body {
 
 .celebration-icon {
   animation: pulseWin 900ms ease-in-out infinite alternate;
-  background: var(--amber);
+  background: linear-gradient(135deg, var(--amber), var(--cyan));
+}
+
+@keyframes fadeLift {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulseWin {
@@ -785,6 +875,42 @@ body {
   }
   to {
     transform: scale(1.04) rotate(2deg);
+  }
+}
+
+@keyframes driftGrid {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 72px 36px, 36px 72px;
+  }
+}
+
+@keyframes slideSheen {
+  from {
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    transform: translateX(-8%) skewX(-14deg);
+  }
+}
+
+@keyframes waterRise {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes waterWave {
+  from {
+    transform: translateX(-20%);
+  }
+  to {
+    transform: translateX(20%);
   }
 }
 
@@ -810,9 +936,6 @@ body {
     display: none;
   }
 
-  .calendar-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 767.98px) {
@@ -835,8 +958,7 @@ body {
 
   .check-actions,
   .todo-progress-grid,
-  .profile-grid,
-  .calendar-grid {
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 

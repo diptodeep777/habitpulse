@@ -3,13 +3,15 @@ const state = {
   habits: [],
   goals: [],
   insights: null,
-  page: "today"
+  page: "today",
+  scheduleDates: []
 };
 
 const todayKey = new Date().toISOString().slice(0, 10);
 const toast = new bootstrap.Toast(document.querySelector("#appToast"));
 const reminderKey = "habitpulse:reminder";
 const celebratedKey = "habitpulse:celebrated";
+const dayCelebratedKey = "habitpulse:day-celebrated";
 const themeKey = "habitpulse:theme";
 const pageMeta = {
   today: ["Today", "Daily command center"],
@@ -69,29 +71,44 @@ function getTodayLog(habit) {
 
 function habitDays(habit) {
   return new Set(
-    String(habit.frequencyDays || "0,1,2,3,4,5,6")
+    String(habit.frequencyDays || "")
       .split(",")
       .map((day) => Number(day))
-      .filter((day) => Number.isInteger(day))
+      .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+  );
+}
+
+function exactDates(habit) {
+  return new Set(
+    String(habit.scheduleDates || "")
+      .split(",")
+      .map((date) => date.trim())
+      .filter(Boolean)
   );
 }
 
 function isScheduled(habit, dateKey = todayKey) {
   const day = new Date(`${dateKey}T00:00:00`).getDay();
-  return habitDays(habit).has(day);
+  return habitDays(habit).has(day) || exactDates(habit).has(dateKey);
 }
 
 function frequencyText(habit) {
   const days = Array.from(habitDays(habit)).sort((a, b) => a - b);
-  if (days.length === 7) return "Every day";
-  if (days.length === 5 && [1, 2, 3, 4, 5].every((day) => days.includes(day))) return "Weekdays";
-  if (!days.length) return "No days";
-  return days.map((day) => dayNames[day]).join(", ");
+  const dates = Array.from(exactDates(habit)).sort();
+  let label = "No recurring days";
+
+  if (days.length === 7) label = "Every day";
+  else if (days.length === 5 && [1, 2, 3, 4, 5].every((day) => days.includes(day))) label = "Weekdays";
+  else if (days.length) label = days.map((day) => dayNames[day]).join(", ");
+
+  if (dates.length && !days.length) return `${dates.length} specific date${dates.length === 1 ? "" : "s"}`;
+  if (dates.length) return `${label} + ${dates.length} date${dates.length === 1 ? "" : "s"}`;
+  return label;
 }
 
-function todoStats(habit) {
+function todoStats(habit, dateKey = todayKey) {
   const todos = habit.subHabits || [];
-  const completed = todos.filter((todo) => todo.logs?.some((log) => log.date === todayKey && log.value > 0)).length;
+  const completed = todos.filter((todo) => todo.logs?.some((log) => log.date === dateKey && log.value > 0)).length;
   return {
     total: todos.length,
     completed,
@@ -99,14 +116,20 @@ function todoStats(habit) {
   };
 }
 
-function habitStatus(habit) {
-  if (!isScheduled(habit)) return "rest";
+function habitStatus(habit, dateKey = todayKey) {
+  if (!isScheduled(habit, dateKey)) return "rest";
   const log = getTodayLog(habit);
   if (log?.value === 0) return "not-done";
-  const todos = todoStats(habit);
+  const todos = todoStats(habit, dateKey);
   if (todos.total && todos.completed === todos.total) return "complete";
   if (todos.completed > 0 || log?.value > 0) return "started";
   return "open";
+}
+
+function showCelebration(title, body) {
+  document.querySelector("#celebrationTitle").textContent = title;
+  document.querySelector("#celebrationBody").textContent = body;
+  bootstrap.Modal.getOrCreateInstance(document.querySelector("#celebrationModal")).show();
 }
 
 function setPage(page) {
@@ -133,14 +156,14 @@ function renderUser() {
   const initial = state.user?.name?.charAt(0)?.toUpperCase() || "U";
   document.querySelector("#avatarInitial").textContent = initial;
   document.querySelector("#accountName").textContent = state.user?.name || "Account";
-  document.querySelector("#heroTitle").textContent = `Hey ${state.user?.name?.split(" ")[0] || "there"}, today is scheduled cleanly.`;
+  document.querySelector("#heroTitle").textContent = `Hey ${state.user?.name?.split(" ")[0] || "there"}, build today's flow.`;
 }
 
 function renderStats() {
   const stats = state.insights?.stats || {};
   const items = [
     { label: "Scheduled today", value: stats.scheduledToday || 0, icon: "calendar-check", tone: "blue" },
-    { label: "Checked in", value: stats.checkedToday || 0, icon: "check2-circle", tone: "green" },
+    { label: "Work done", value: `${stats.todayWorkDone || 0}/${stats.todayWorkTotal || 0}`, icon: "check2-circle", tone: "green" },
     { label: "Not done", value: stats.missedToday || 0, icon: "x-circle", tone: "red" },
     { label: "Streak", value: `${stats.streak || 0}d`, icon: "fire", tone: "amber" }
   ];
@@ -148,8 +171,8 @@ function renderStats() {
   document.querySelector("#completionRate").textContent = `${stats.completionRate || 0}%`;
   document.querySelector("#heroSub").textContent =
     stats.scheduledToday > 0
-      ? `${stats.checkedToday || 0} of ${stats.scheduledToday} scheduled habits checked in.`
-      : "No habits scheduled today. Your progress will not be marked incomplete.";
+      ? `${stats.todayWorkDone || 0} of ${stats.todayWorkTotal || 0} scheduled work blocks complete.`
+      : "No habits scheduled today. Rest days stay clean.";
 
   document.querySelector("#statsGrid").innerHTML = items
     .map(
@@ -178,15 +201,10 @@ function renderTodoBlocks(habit) {
         .map((todo) => {
           const done = todo.logs?.some((log) => log.date === todayKey && log.value > 0);
           return `
-            <article class="todo-block ${done ? "done" : ""}">
-              <button class="todo-toggle" data-habit-id="${habit.id}" data-sub-id="${todo.id}" data-done="${done}" aria-label="Toggle To do">
-                <i class="bi ${done ? "bi-check-lg" : "bi-circle"}"></i>
-              </button>
+            <button class="todo-block ${done ? "done" : ""}" data-habit-id="${habit.id}" data-sub-id="${todo.id}" data-done="${done}">
+              <i class="bi ${done ? "bi-check-circle-fill" : "bi-circle"}"></i>
               <span>${escapeHtml(todo.title)}</span>
-              <button class="todo-delete" data-habit-id="${habit.id}" data-sub-id="${todo.id}" aria-label="Delete To do">
-                <i class="bi bi-x"></i>
-              </button>
-            </article>
+            </button>
           `;
         })
         .join("")}
@@ -194,7 +212,7 @@ function renderTodoBlocks(habit) {
   `;
 }
 
-function renderHabitCard(habit) {
+function renderHabitCard(habit, { manage = false } = {}) {
   const status = habitStatus(habit);
   const todos = todoStats(habit);
   const scheduled = isScheduled(habit);
@@ -205,6 +223,7 @@ function renderHabitCard(habit) {
     "not-done": "Not done",
     open: "Open"
   }[status];
+  const progress = todos.total ? todos.percent : scheduled && status !== "open" ? 100 : 0;
 
   return `
     <article class="habit-card habit-${status}">
@@ -216,22 +235,29 @@ function renderHabitCard(habit) {
           <h3 class="h6 fw-bold mb-1">${escapeHtml(habit.title)}</h3>
           <p class="text-secondary small mb-0">${escapeHtml(habit.category)} · ${escapeHtml(frequencyText(habit))}</p>
         </div>
-        <div class="dropdown">
-          <button class="btn btn-light icon-btn" data-bs-toggle="dropdown" aria-label="Habit actions">
-            <i class="bi bi-three-dots"></i>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><button class="dropdown-item add-subhabit" data-id="${habit.id}">Add To do</button></li>
-            <li><button class="dropdown-item archive-habit" data-id="${habit.id}">Archive</button></li>
-            <li><button class="dropdown-item text-danger delete-habit" data-id="${habit.id}">Delete</button></li>
-          </ul>
-        </div>
+        ${
+          manage
+            ? `
+              <div class="dropdown">
+                <button class="btn btn-light icon-btn" data-bs-toggle="dropdown" aria-label="Habit actions">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><button class="dropdown-item edit-habit" data-id="${habit.id}">Edit habit</button></li>
+                  <li><button class="dropdown-item add-subhabit" data-id="${habit.id}">Add To do</button></li>
+                  <li><button class="dropdown-item archive-habit" data-id="${habit.id}">Archive</button></li>
+                  <li><button class="dropdown-item text-danger delete-habit" data-id="${habit.id}">Delete</button></li>
+                </ul>
+              </div>
+            `
+            : ""
+        }
       </div>
       <div class="habit-progress-row">
         <span class="status-pill status-${status}">${escapeHtml(statusText)}</span>
         <span class="text-secondary small">${todos.completed}/${todos.total || 0} To do's</span>
       </div>
-      <div class="mini-progress" aria-hidden="true"><span style="width:${todos.total ? todos.percent : scheduled && status !== "open" ? 100 : 0}%"></span></div>
+      <div class="mini-progress" aria-hidden="true"><span style="width:${progress}%"></span></div>
       <p class="eyebrow mt-3 mb-2">To do's</p>
       ${renderTodoBlocks(habit)}
       <div class="check-actions mt-3">
@@ -262,18 +288,14 @@ function renderHabits() {
   const todayHabits = activeHabits.filter((habit) => isScheduled(habit));
   const todayList = document.querySelector("#todayHabitList");
   const allList = document.querySelector("#habitList");
-  const empty = `
-    <div class="empty-state">
-      <i class="bi bi-stars fs-3 d-block mb-2"></i>
-      Add your first habit.
-    </div>
-  `;
 
   todayList.innerHTML = todayHabits.length
-    ? todayHabits.map(renderHabitCard).join("")
+    ? todayHabits.map((habit) => renderHabitCard(habit, { manage: false })).join("")
     : `<div class="empty-state"><i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>No habits scheduled today.</div>`;
 
-  allList.innerHTML = activeHabits.length ? activeHabits.map(renderHabitCard).join("") : empty;
+  allList.innerHTML = activeHabits.length
+    ? activeHabits.map((habit) => renderHabitCard(habit, { manage: true })).join("")
+    : `<div class="empty-state"><i class="bi bi-stars fs-3 d-block mb-2"></i>Add your first habit.</div>`;
 }
 
 function renderSuggestions() {
@@ -297,14 +319,12 @@ function renderWeekly() {
   const weekly = state.insights?.weekly || [];
   document.querySelector("#weeklyChart").innerHTML = weekly
     .map((day) => {
-      const habitPercent = day.target ? Math.min(100, Math.round((day.count / day.target) * 100)) : 100;
-      const todoPercent = day.todoTotal ? Math.min(100, Math.round((day.subCompleted / day.todoTotal) * 100)) : 100;
+      const percent = day.workTotal ? Math.min(100, day.workPercent) : 0;
       const label = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" });
       return `
         <div class="bar-wrap">
-          <div class="bar-stack" title="${day.count}/${day.target} habits, ${day.subCompleted}/${day.todoTotal} To do's">
-            <div class="bar bar-done" style="height:${Math.max(habitPercent, 5)}%"></div>
-            <div class="bar bar-todo" style="height:${Math.max(todoPercent, 5)}%"></div>
+          <div class="bar-stack" title="${day.workDone}/${day.workTotal} work blocks">
+            <div class="bar bar-water" style="height:${percent}%"></div>
           </div>
           <small class="text-secondary fw-semibold">${escapeHtml(label)}</small>
         </div>
@@ -315,34 +335,41 @@ function renderWeekly() {
 
 function renderMonthly() {
   const monthly = state.insights?.monthly || [];
-  const activeDays = monthly.filter((day) => day.count > 0 || day.subCompleted > 0).length;
+  const activeDays = monthly.filter((day) => day.workDone > 0).length;
+  const firstDate = monthly[0] ? new Date(`${monthly[0].date}T00:00:00`) : new Date();
+  const firstDay = monthly[0] ? firstDate.getDay() : 0;
+  const monthName = firstDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  document.querySelector("#monthLabel").textContent = monthName;
   document.querySelector("#monthlySummary").textContent = `${activeDays} active day${activeDays === 1 ? "" : "s"}`;
 
-  document.querySelector("#monthlyCalendar").innerHTML = monthly
-    .map((day) => {
-      const date = new Date(`${day.date}T00:00:00`);
-      const dayNumber = date.getDate();
-      const habitPercent = day.target ? Math.min(100, day.habitPercent) : 100;
-      const todoPercent = day.todoTotal ? Math.min(100, day.todoPercent) : 100;
-      const done = day.target && day.count >= day.target;
-      return `
-        <article class="calendar-cell ${done ? "is-full" : ""}">
-          <div class="calendar-date">
-            <span>${dayNumber}</span>
-            <small>${escapeHtml(dayNames[date.getDay()])}</small>
-          </div>
-          <div class="calendar-metric">
-            <strong>${habitPercent}%</strong>
-            <span>Habits</span>
-          </div>
-          <div class="todo-checks">
-            <i class="bi ${todoPercent === 100 ? "bi-check-circle-fill" : "bi-circle"}"></i>
-            <span>${day.subCompleted}/${day.todoTotal || 0}</span>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  const blanks = Array.from({ length: firstDay }, () => `<span class="calendar-cell calendar-blank"></span>`);
+  const cells = monthly.map((day) => {
+    const date = new Date(`${day.date}T00:00:00`);
+    const dayNumber = date.getDate();
+    const percent = day.workTotal ? Math.min(100, day.workPercent) : 0;
+    const isFull = day.workTotal > 0 && percent === 100;
+
+    return `
+      <article class="calendar-cell ${day.workTotal ? "has-work" : "no-work"} ${isFull ? "is-full" : ""}">
+        <div class="water-fill" style="height:${percent}%"></div>
+        <div class="calendar-date">
+          <span>${dayNumber}</span>
+          <small>${escapeHtml(dayNames[date.getDay()])}</small>
+        </div>
+        <div class="calendar-metric">
+          <strong>${percent > 0 ? `${percent}%` : ""}</strong>
+          <span>${day.workTotal ? `${day.workDone}/${day.workTotal} work` : "Rest"}</span>
+        </div>
+        <div class="todo-checks">
+          <i class="bi ${isFull ? "bi-check-circle-fill" : "bi-circle"}"></i>
+          <span>${day.subCompleted}/${day.todoTotal || 0} To do's</span>
+        </div>
+      </article>
+    `;
+  });
+
+  document.querySelector("#monthlyCalendar").innerHTML = [...blanks, ...cells].join("");
 }
 
 function renderTodoProgress() {
@@ -472,20 +499,31 @@ function renderProfile() {
 }
 
 function showNewMilestones() {
-  if (!state.user || !state.insights?.milestones?.milestones) return;
+  if (!state.user || !state.insights?.milestones?.milestones) return false;
   const storage = JSON.parse(localStorage.getItem(celebratedKey) || "{}");
   const userKey = state.user.id || state.user.email || "local";
   const seen = new Set(storage[userKey] || []);
   const newMilestone = state.insights.milestones.milestones.find(
     (milestone) => milestone.achieved && !seen.has(milestone.title)
   );
-  if (!newMilestone) return;
+  if (!newMilestone) return false;
   seen.add(newMilestone.title);
   storage[userKey] = Array.from(seen);
   localStorage.setItem(celebratedKey, JSON.stringify(storage));
-  document.querySelector("#celebrationTitle").textContent = `Congrats: ${newMilestone.title}`;
-  document.querySelector("#celebrationBody").textContent = newMilestone.body;
-  bootstrap.Modal.getOrCreateInstance(document.querySelector("#celebrationModal")).show();
+  showCelebration(`Congrats: ${newMilestone.title}`, newMilestone.body);
+  return true;
+}
+
+function showDailyCompletion() {
+  const stats = state.insights?.stats;
+  if (!state.user || !stats?.dayComplete) return false;
+  const key = `${state.user.id || state.user.email || "local"}:${todayKey}`;
+  const seen = new Set(JSON.parse(localStorage.getItem(dayCelebratedKey) || "[]"));
+  if (seen.has(key)) return false;
+  seen.add(key);
+  localStorage.setItem(dayCelebratedKey, JSON.stringify(Array.from(seen)));
+  showCelebration("Day complete", "Congratulations. Every scheduled work block for today is done.");
+  return true;
 }
 
 function renderAll() {
@@ -499,7 +537,9 @@ function renderAll() {
   renderMilestones();
   renderGoals();
   renderProfile();
-  showNewMilestones();
+  if (!showDailyCompletion()) {
+    showNewMilestones();
+  }
 }
 
 async function refresh() {
@@ -518,8 +558,78 @@ async function refresh() {
 }
 
 function selectedFrequencyDays() {
-  const days = Array.from(document.querySelectorAll("#frequencyPicker input:checked")).map((input) => input.value);
-  return days.length ? days.join(",") : "1,2,3,4,5";
+  return Array.from(document.querySelectorAll("#frequencyPicker input:checked"))
+    .map((input) => input.value)
+    .join(",");
+}
+
+function selectedScheduleDates() {
+  return state.scheduleDates.slice().sort().join(",");
+}
+
+function setFrequencyPicker(value = "1,2,3,4,5") {
+  const selected = new Set(String(value || "").split(",").filter(Boolean));
+  document.querySelectorAll("#frequencyPicker input").forEach((input) => {
+    input.checked = selected.has(input.value);
+  });
+}
+
+function renderScheduleDateChips() {
+  const container = document.querySelector("#scheduleDateChips");
+  container.innerHTML = state.scheduleDates.length
+    ? state.scheduleDates
+        .slice()
+        .sort()
+        .map(
+          (date) => `
+            <button class="date-chip" type="button" data-date="${date}">
+              <span>${escapeHtml(date)}</span>
+              <i class="bi bi-x"></i>
+            </button>
+          `
+        )
+        .join("")
+    : `<span class="text-secondary small">No specific dates selected</span>`;
+}
+
+function resetHabitForm() {
+  document.querySelector("#habitForm").reset();
+  document.querySelector("#habitId").value = "";
+  document.querySelector("#habitModalTitle").textContent = "New habit";
+  document.querySelector("#habitSubmit").textContent = "Create";
+  document.querySelector("#habitCategory").value = "Lifestyle";
+  document.querySelector("#habitColor").value = "#111827";
+  document.querySelector("#habitSubHabits").placeholder = "Warm up\nMain sets\nStretch";
+  state.scheduleDates = [];
+  setFrequencyPicker("1,2,3,4,5");
+  renderScheduleDateChips();
+}
+
+function openEditHabit(habit) {
+  document.querySelector("#habitId").value = habit.id;
+  document.querySelector("#habitTitle").value = habit.title;
+  document.querySelector("#habitCategory").value = habit.category;
+  document.querySelector("#habitIcon").value = habit.icon;
+  document.querySelector("#habitColor").value = habit.color;
+  document.querySelector("#habitSubHabits").value = "";
+  document.querySelector("#habitSubHabits").placeholder = "Add new To do's only";
+  document.querySelector("#habitModalTitle").textContent = "Edit habit";
+  document.querySelector("#habitSubmit").textContent = "Save";
+  state.scheduleDates = Array.from(exactDates(habit));
+  setFrequencyPicker(habit.frequencyDays || "");
+  renderScheduleDateChips();
+  bootstrap.Modal.getOrCreateInstance(document.querySelector("#habitModal")).show();
+}
+
+async function saveNewTodos(habitId, titles) {
+  await Promise.all(
+    titles.map((title) =>
+      api(`/api/habits/${habitId}/subhabits`, {
+        method: "POST",
+        body: JSON.stringify({ title })
+      })
+    )
+  );
 }
 
 function loadReminderSettings() {
@@ -561,40 +671,72 @@ document.querySelectorAll("[data-page-jump]").forEach((button) => {
   button.addEventListener("click", () => setPage(button.dataset.pageJump));
 });
 
+document.querySelectorAll('[data-bs-target="#habitModal"]').forEach((button) => {
+  button.addEventListener("click", resetHabitForm);
+});
+
 document.querySelector("#themeToggle").addEventListener("click", () => {
   setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
+document.querySelector("#addScheduleDate").addEventListener("click", () => {
+  const input = document.querySelector("#scheduleDateInput");
+  if (!input.value) return;
+  state.scheduleDates = Array.from(new Set([...state.scheduleDates, input.value]));
+  input.value = "";
+  renderScheduleDateChips();
+});
+
+document.querySelector("#scheduleDateChips").addEventListener("click", (event) => {
+  const chip = event.target.closest(".date-chip");
+  if (!chip) return;
+  state.scheduleDates = state.scheduleDates.filter((date) => date !== chip.dataset.date);
+  renderScheduleDateChips();
+});
+
 document.querySelector("#habitForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const subHabits = document
+  const habitId = document.querySelector("#habitId").value;
+  const newTodos = document
     .querySelector("#habitSubHabits")
     .value.split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+  const frequencyDays = selectedFrequencyDays();
+  const scheduleDates = selectedScheduleDates();
+  const payload = {
+    title: document.querySelector("#habitTitle").value,
+    category: document.querySelector("#habitCategory").value,
+    cadence: "WEEKLY",
+    targetPerPeriod: Math.max(1, frequencyDays.split(",").filter(Boolean).length || state.scheduleDates.length || 1),
+    frequencyDays,
+    scheduleDates,
+    color: document.querySelector("#habitColor").value,
+    icon: document.querySelector("#habitIcon").value
+  };
 
-  await api("/api/habits", {
-    method: "POST",
-    body: JSON.stringify({
-      title: document.querySelector("#habitTitle").value,
-      category: document.querySelector("#habitCategory").value,
-      cadence: "WEEKLY",
-      targetPerPeriod: selectedFrequencyDays().split(",").length,
-      frequencyDays: selectedFrequencyDays(),
-      color: document.querySelector("#habitColor").value,
-      icon: document.querySelector("#habitIcon").value,
-      subHabits
-    })
-  });
+  if (habitId) {
+    await api(`/api/habits/${habitId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    if (newTodos.length) {
+      await saveNewTodos(habitId, newTodos);
+    }
+    showToast("Habit updated");
+  } else {
+    await api("/api/habits", {
+      method: "POST",
+      body: JSON.stringify({
+        ...payload,
+        subHabits: newTodos
+      })
+    });
+    showToast("Habit created");
+  }
 
   bootstrap.Modal.getInstance(document.querySelector("#habitModal")).hide();
-  event.target.reset();
-  document.querySelector("#habitCategory").value = "Lifestyle";
-  document.querySelector("#habitColor").value = "#111827";
-  document.querySelectorAll("#frequencyPicker input").forEach((input) => {
-    input.checked = ["1", "2", "3", "4", "5"].includes(input.value);
-  });
-  showToast("Habit created");
+  resetHabitForm();
   await refresh();
 });
 
@@ -639,8 +781,8 @@ document.addEventListener("click", async (event) => {
   const archiveButton = event.target.closest(".archive-habit");
   const deleteHabitButton = event.target.closest(".delete-habit");
   const addSubHabitButton = event.target.closest(".add-subhabit");
-  const todoToggle = event.target.closest(".todo-toggle");
-  const todoDelete = event.target.closest(".todo-delete");
+  const editHabitButton = event.target.closest(".edit-habit");
+  const todoToggle = event.target.closest(".todo-block");
   const deleteGoalButton = event.target.closest(".delete-goal");
   const incrementGoalButton = event.target.closest(".increment-goal");
   const completeGoalButton = event.target.closest(".complete-goal");
@@ -661,6 +803,11 @@ document.addEventListener("click", async (event) => {
     await refresh();
   }
 
+  if (editHabitButton) {
+    const habit = state.habits.find((item) => item.id === editHabitButton.dataset.id);
+    if (habit) openEditHabit(habit);
+  }
+
   if (addSubHabitButton) {
     const title = window.prompt("To do name");
     if (title?.trim()) {
@@ -673,21 +820,13 @@ document.addEventListener("click", async (event) => {
     }
   }
 
-  if (todoToggle) {
+  if (todoToggle && !event.target.closest(".dropdown")) {
     const value = todoToggle.dataset.done === "true" ? 0 : 1;
     await api(`/api/habits/${todoToggle.dataset.habitId}/subhabits/${todoToggle.dataset.subId}/logs`, {
       method: "POST",
       body: JSON.stringify({ date: todayKey, value })
     });
     showToast(value ? "To do complete" : "To do reopened");
-    await refresh();
-  }
-
-  if (todoDelete) {
-    await api(`/api/habits/${todoDelete.dataset.habitId}/subhabits/${todoDelete.dataset.subId}`, {
-      method: "DELETE"
-    });
-    showToast("To do deleted");
     await refresh();
   }
 
@@ -740,6 +879,7 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
 });
 
 setTheme(localStorage.getItem(themeKey) || "light");
+resetHabitForm();
 hydrateReminderForm();
 setInterval(checkReminder, 30000);
 setPage("today");

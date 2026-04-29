@@ -1,4 +1,4 @@
-const { dateRange, toDateKey } = require("../utils/date");
+const { dateRange, monthRange, toDateKey } = require("../utils/date");
 
 function calculateStreak(logsByDate) {
   let streak = 0;
@@ -25,8 +25,17 @@ function frequencySet(habit) {
   );
 }
 
+function scheduleDateSet(habit) {
+  return new Set(
+    String(habit.scheduleDates || "")
+      .split(",")
+      .map((date) => date.trim())
+      .filter(Boolean)
+  );
+}
+
 function isScheduled(habit, dateKey) {
-  return frequencySet(habit).has(weekdayIndex(dateKey));
+  return scheduleDateSet(habit).has(dateKey) || frequencySet(habit).has(weekdayIndex(dateKey));
 }
 
 function buildSuggestions({ activeHabits, logs, goals, completionRate, streak, missedToday }) {
@@ -142,11 +151,12 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
   const activeHabits = habits.filter((habit) => !habit.archived);
   const lastSeven = dateRange(7);
   const lastThirty = dateRange(30);
+  const currentMonth = monthRange();
   const logsByDate = new Map();
   const logsByHabit = new Map();
   const missesByDate = new Map();
   const subLogsByDate = new Map();
-  const subHabitById = new Map(subHabits.map((subHabit) => [subHabit.id, subHabit]));
+  const completedSubHabitsByDate = new Map();
 
   for (const log of logs) {
     if (log.value > 0) {
@@ -160,7 +170,45 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
   for (const log of subHabitLogs) {
     if (log.value > 0) {
       subLogsByDate.set(log.date, (subLogsByDate.get(log.date) || 0) + 1);
+      const dateSet = completedSubHabitsByDate.get(log.date) || new Set();
+      dateSet.add(log.subHabitId);
+      completedSubHabitsByDate.set(log.date, dateSet);
     }
+  }
+
+  const completedHabitIdsByDate = logs.reduce((acc, log) => {
+    if (log.value > 0) {
+      const dateSet = acc.get(log.date) || new Set();
+      dateSet.add(log.habitId);
+      acc.set(log.date, dateSet);
+    }
+    return acc;
+  }, new Map());
+
+  function workStatsForDate(date) {
+    let total = 0;
+    let done = 0;
+    const completedTodos = completedSubHabitsByDate.get(date) || new Set();
+    const completedHabits = completedHabitIdsByDate.get(date) || new Set();
+
+    for (const habit of activeHabits) {
+      if (!isScheduled(habit, date)) continue;
+
+      const habitTodos = subHabits.filter((subHabit) => subHabit.habitId === habit.id);
+      if (habitTodos.length) {
+        total += habitTodos.length;
+        done += habitTodos.filter((subHabit) => completedTodos.has(subHabit.id)).length;
+      } else {
+        total += 1;
+        if (completedHabits.has(habit.id)) done += 1;
+      }
+    }
+
+    return {
+      total,
+      done,
+      percent: total ? Math.round((done / total) * 100) : 100
+    };
   }
 
   const expectedThirty = Math.max(
@@ -193,6 +241,7 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
       const habit = activeHabits.find((item) => item.id === subHabit.habitId);
       return habit && isScheduled(habit, date);
     }).length;
+    const work = workStatsForDate(date);
 
     return {
       date,
@@ -200,11 +249,14 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
       missed: missesByDate.get(date) || 0,
       subCompleted: subLogsByDate.get(date) || 0,
       todoTotal,
-      target: scheduledHabits.length
+      target: scheduledHabits.length,
+      workDone: work.done,
+      workTotal: work.total,
+      workPercent: work.percent
     };
   });
 
-  const monthly = lastThirty.map((date) => {
+  const monthly = currentMonth.map((date) => {
     const scheduledHabits = activeHabits.filter((habit) => isScheduled(habit, date));
     const todoTotal = subHabits.filter((subHabit) => {
       const habit = activeHabits.find((item) => item.id === subHabit.habitId);
@@ -212,6 +264,7 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
     }).length;
     const count = logsByDate.get(date) || 0;
     const subCompleted = subLogsByDate.get(date) || 0;
+    const work = workStatsForDate(date);
 
     return {
       date,
@@ -221,7 +274,10 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
       todoTotal,
       target: scheduledHabits.length,
       habitPercent: scheduledHabits.length ? Math.round((count / scheduledHabits.length) * 100) : 100,
-      todoPercent: todoTotal ? Math.round((subCompleted / todoTotal) * 100) : 100
+      todoPercent: todoTotal ? Math.round((subCompleted / todoTotal) * 100) : 100,
+      workDone: work.done,
+      workTotal: work.total,
+      workPercent: work.percent
     };
   });
 
@@ -250,6 +306,9 @@ function summarizeHabits({ habits, logs, goals, subHabits = [], subHabitLogs = [
       scheduledToday: todayHabits.length,
       checkedToday,
       missedToday,
+      todayWorkDone: workStatsForDate(today).done,
+      todayWorkTotal: workStatsForDate(today).total,
+      dayComplete: workStatsForDate(today).total > 0 && workStatsForDate(today).percent === 100,
       completionRate: Math.min(completionRate, 100),
       streak,
       activeGoals: goals.filter((goal) => goal.status === "ACTIVE").length,

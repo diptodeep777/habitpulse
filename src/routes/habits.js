@@ -12,7 +12,12 @@ const habitSchema = z.object({
   category: z.string().trim().min(2).max(60).default("Lifestyle"),
   cadence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).default("DAILY"),
   targetPerPeriod: z.coerce.number().int().min(1).max(365).default(1),
-  frequencyDays: z.string().trim().regex(/^[0-6](,[0-6])*$/).default("0,1,2,3,4,5,6"),
+  frequencyDays: z.string().trim().regex(/^$|^[0-6](,[0-6])*$/).default("0,1,2,3,4,5,6"),
+  scheduleDates: z
+    .string()
+    .trim()
+    .regex(/^$|^\d{4}-\d{2}-\d{2}(,\d{4}-\d{2}-\d{2})*$/)
+    .default(""),
   color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).default("#111827"),
   icon: z.string().trim().min(2).max(40).default("sparkles"),
   subHabits: z.array(z.string().trim().min(2).max(100)).max(12).default([])
@@ -121,6 +126,7 @@ router.post(
         cadence: input.cadence,
         targetPerPeriod: input.targetPerPeriod,
         frequencyDays: input.frequencyDays,
+        scheduleDates: input.scheduleDates || null,
         color: input.color,
         icon: input.icon,
         subHabits: {
@@ -204,6 +210,33 @@ router.post(
         ...input
       }
     });
+
+    const subHabits = await prisma.subHabit.findMany({
+      where: { userId: req.user.id, habitId: habit.id }
+    });
+
+    if (subHabits.length) {
+      await Promise.all(
+        subHabits.map((subHabit) =>
+          prisma.subHabitLog.upsert({
+            where: {
+              userId_subHabitId_date: {
+                userId: req.user.id,
+                subHabitId: subHabit.id,
+                date: input.date
+              }
+            },
+            update: { value: input.value > 0 ? 1 : 0 },
+            create: {
+              userId: req.user.id,
+              subHabitId: subHabit.id,
+              date: input.date,
+              value: input.value > 0 ? 1 : 0
+            }
+          })
+        )
+      );
+    }
 
     return res.json({ log });
   })
@@ -321,6 +354,14 @@ router.post(
 router.delete(
   "/:id/logs/:date",
   asyncHandler(async (req, res) => {
+    const subHabits = await prisma.subHabit.findMany({
+      where: {
+        userId: req.user.id,
+        habitId: req.params.id
+      },
+      select: { id: true }
+    });
+
     await prisma.habitLog.deleteMany({
       where: {
         userId: req.user.id,
@@ -328,6 +369,18 @@ router.delete(
         date: req.params.date
       }
     });
+
+    if (subHabits.length) {
+      await prisma.subHabitLog.deleteMany({
+        where: {
+          userId: req.user.id,
+          subHabitId: {
+            in: subHabits.map((subHabit) => subHabit.id)
+          },
+          date: req.params.date
+        }
+      });
+    }
 
     return res.status(204).send();
   })

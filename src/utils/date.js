@@ -24,9 +24,22 @@ function dateRange(days) {
   return dates;
 }
 
+function monthRange(date = new Date()) {
+  const cursor = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  const dates = [];
+
+  while (cursor.getUTCMonth() === date.getUTCMonth()) {
+    dates.push(toDateKey(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
 module.exports = {
   toDateKey,
   addDays,
   daysBetween,
-  dateRange
+  dateRange,
+  monthRange
 };

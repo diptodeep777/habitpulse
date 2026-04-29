@@ -32,6 +32,7 @@ model Habit {
   cadence         String     @default("DAILY")
   targetPerPeriod Int        @default(1)
   frequencyDays   String     @default("0,1,2,3,4,5,6")
+  scheduleDates   String?
   color           String     @default("#111827")
   icon            String     @default("sparkles")
   archived        Boolean    @default(false)

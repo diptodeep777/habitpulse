@@ -120,6 +120,7 @@
                       <p class="eyebrow mb-1">Monthly progress</p>
                       <h2 class="h5 fw-bold mb-0">Calendar view</h2>
                     </div>
+                    <span class="mini-pill"><i class="bi bi-calendar3"></i><span id="monthLabel">This month</span></span>
                     <span class="mini-pill"><i class="bi bi-activity"></i><span id="monthlySummary">0 active days</span></span>
                   </div>
                   <div class="calendar-grid" id="monthlyCalendar"></div>
@@ -210,10 +211,11 @@
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <form class="modal-content" id="habitForm">
           <div class="modal-header">
-            <h3 class="modal-title h5">New habit</h3>
+            <h3 class="modal-title h5" id="habitModalTitle">New habit</h3>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body vstack gap-3">
+            <input type="hidden" id="habitId">
             <div>
               <label class="form-label" for="habitTitle">Habit</label>
               <input class="form-control" id="habitTitle" required maxlength="100" placeholder="Gym, study, meditate">
@@ -256,13 +258,25 @@
               </div>
             </div>
             <div>
+              <label class="form-label" for="scheduleDateInput">Specific dates</label>
+              <div class="input-group">
+                <input class="form-control" id="scheduleDateInput" type="date">
+                <button class="btn btn-outline-dark" type="button" id="addScheduleDate">
+                  <i class="bi bi-calendar-plus"></i>
+                </button>
+              </div>
+              <div class="date-chip-list mt-2" id="scheduleDateChips"></div>
+              <div class="form-text">Use weekdays for recurring habits. Use specific dates for one-off habits; clear weekdays if it should happen only on those dates.</div>
+            </div>
+            <div>
               <label class="form-label" for="habitSubHabits">To do's</label>
               <textarea class="form-control" id="habitSubHabits" rows="3" placeholder="Warm up&#10;Main sets&#10;Stretch"></textarea>
+              <div class="form-text">On edit, new lines are added as extra To do's. Existing To do's stay protected from accidental deletion.</div>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-dark">Create</button>
+            <button type="submit" class="btn btn-dark" id="habitSubmit">Create</button>
           </div>
         </form>
       </div>
