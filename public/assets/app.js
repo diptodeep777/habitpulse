@@ -4,7 +4,8 @@ const state = {
   goals: [],
   insights: null,
   page: "today",
-  scheduleDates: []
+  scheduleDates: [],
+  activeDate: todayKey
 };
 
 const todayKey = new Date().toISOString().slice(0, 10);
@@ -65,8 +66,8 @@ async function api(path, options = {}) {
   return response.json();
 }
 
-function getTodayLog(habit) {
-  return habit.logs?.find((log) => log.date === todayKey);
+function getHabitLog(habit, dateKey = state.activeDate) {
+  return habit.logs?.find((log) => log.date === dateKey);
 }
 
 function habitDays(habit) {
@@ -118,7 +119,7 @@ function todoStats(habit, dateKey = todayKey) {
 
 function habitStatus(habit, dateKey = todayKey) {
   if (!isScheduled(habit, dateKey)) return "rest";
-  const log = getTodayLog(habit);
+  const log = getHabitLog(habit, dateKey);
   if (log?.value === 0) return "not-done";
   const todos = todoStats(habit, dateKey);
   if (todos.total && todos.completed === todos.total) return "complete";
@@ -189,7 +190,7 @@ function renderStats() {
     .join("");
 }
 
-function renderTodoBlocks(habit) {
+function renderTodoBlocks(habit, dateKey = state.activeDate) {
   const todos = habit.subHabits || [];
   if (!todos.length) {
     return `<div class="empty-mini">No To do's yet</div>`;
@@ -199,7 +200,7 @@ function renderTodoBlocks(habit) {
     <div class="todo-block-grid">
       ${todos
         .map((todo) => {
-          const done = todo.logs?.some((log) => log.date === todayKey && log.value > 0);
+          const done = todo.logs?.some((log) => log.date === dateKey && log.value > 0);
           return `
             <button class="todo-block ${done ? "done" : ""}" data-habit-id="${habit.id}" data-sub-id="${todo.id}" data-done="${done}">
               <i class="bi ${done ? "bi-check-circle-fill" : "bi-circle"}"></i>
@@ -212,10 +213,10 @@ function renderTodoBlocks(habit) {
   `;
 }
 
-function renderHabitCard(habit, { manage = false } = {}) {
-  const status = habitStatus(habit);
-  const todos = todoStats(habit);
-  const scheduled = isScheduled(habit);
+function renderHabitCard(habit, { manage = false, dateKey = state.activeDate } = {}) {
+  const status = habitStatus(habit, dateKey);
+  const todos = todoStats(habit, dateKey);
+  const scheduled = isScheduled(habit, dateKey);
   const statusText = {
     rest: "Rest day",
     complete: "All To do's done",
@@ -259,7 +260,7 @@ function renderHabitCard(habit, { manage = false } = {}) {
       </div>
       <div class="mini-progress" aria-hidden="true"><span style="width:${progress}%"></span></div>
       <p class="eyebrow mt-3 mb-2">To do's</p>
-      ${renderTodoBlocks(habit)}
+      ${renderTodoBlocks(habit, dateKey)}
       <div class="check-actions mt-3">
         ${
           scheduled
@@ -276,7 +277,7 @@ function renderHabitCard(habit, { manage = false } = {}) {
       </div>
       ${
         scheduled && status !== "open"
-          ? `<button class="btn btn-link btn-sm clear-check px-0 mt-2" data-id="${habit.id}">Clear today's mark</button>`
+          ? `<button class="btn btn-link btn-sm clear-check px-0 mt-2" data-id="${habit.id}">Clear mark</button>`
           : ""
       }
     </article>
@@ -285,16 +286,21 @@ function renderHabitCard(habit, { manage = false } = {}) {
 
 function renderHabits() {
   const activeHabits = state.habits.filter((habit) => !habit.archived);
-  const todayHabits = activeHabits.filter((habit) => isScheduled(habit));
+  const todayHabits = activeHabits.filter((habit) => isScheduled(habit, state.activeDate));
   const todayList = document.querySelector("#todayHabitList");
   const allList = document.querySelector("#habitList");
+  const selectedDateLabel = new Date(`${state.activeDate}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
 
   todayList.innerHTML = todayHabits.length
-    ? todayHabits.map((habit) => renderHabitCard(habit, { manage: false })).join("")
-    : `<div class="empty-state"><i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>No habits scheduled today.</div>`;
+    ? todayHabits.map((habit) => renderHabitCard(habit, { manage: false, dateKey: state.activeDate })).join("")
+    : `<div class="empty-state"><i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>No habits scheduled for ${escapeHtml(selectedDateLabel)}.</div>`;
 
   allList.innerHTML = activeHabits.length
-    ? activeHabits.map((habit) => renderHabitCard(habit, { manage: true })).join("")
+    ? activeHabits.map((habit) => renderHabitCard(habit, { manage: true, dateKey: state.activeDate })).join("")
     : `<div class="empty-state"><i class="bi bi-stars fs-3 d-block mb-2"></i>Add your first habit.</div>`;
 }
 
@@ -377,7 +383,7 @@ function renderTodoProgress() {
   document.querySelector("#todoProgressList").innerHTML = habitsWithTodos.length
     ? habitsWithTodos
         .map((habit) => {
-          const todos = todoStats(habit);
+          const todos = todoStats(habit, state.activeDate);
           return `
             <article class="todo-progress-card">
               <div class="d-flex justify-content-between gap-3 mb-2">
@@ -388,7 +394,7 @@ function renderTodoProgress() {
               <div class="todo-checkline mt-3">
                 ${(habit.subHabits || [])
                   .map((todo) => {
-                    const done = todo.logs?.some((log) => log.date === todayKey && log.value > 0);
+                    const done = todo.logs?.some((log) => log.date === state.activeDate && log.value > 0);
                     return `<span class="${done ? "done" : ""}"><i class="bi ${done ? "bi-check-lg" : "bi-x"}"></i>${escapeHtml(todo.title)}</span>`;
                   })
                   .join("")}
@@ -545,7 +551,7 @@ function renderAll() {
 async function refresh() {
   const [{ user }, { habits }, { goals }, insights] = await Promise.all([
     api("/api/auth/me"),
-    api("/api/habits"),
+    api(`/api/habits?date=${encodeURIComponent(state.activeDate)}`),
     api("/api/goals"),
     api("/api/insights/summary")
   ]);
@@ -679,6 +685,19 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
   setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
+document.querySelector("#logDateInput").addEventListener("change", async (event) => {
+  if (!event.target.value) return;
+  state.activeDate = event.target.value;
+  await refresh();
+});
+
+document.querySelector("#jumpTodayButton").addEventListener("click", async () => {
+  if (state.activeDate === todayKey) return;
+  state.activeDate = todayKey;
+  document.querySelector("#logDateInput").value = todayKey;
+  await refresh();
+});
+
 document.querySelector("#addScheduleDate").addEventListener("click", () => {
   const input = document.querySelector("#scheduleDateInput");
   if (!input.value) return;
@@ -791,15 +810,15 @@ document.addEventListener("click", async (event) => {
     const value = statusButton.dataset.status === "done" ? 1 : 0;
     await api(`/api/habits/${statusButton.dataset.id}/logs`, {
       method: "POST",
-      body: JSON.stringify({ date: todayKey, value })
+      body: JSON.stringify({ date: state.activeDate, value })
     });
     showToast(value ? "Marked done" : "Marked not done");
     await refresh();
   }
 
   if (clearButton) {
-    await api(`/api/habits/${clearButton.dataset.id}/logs/${todayKey}`, { method: "DELETE" });
-    showToast("Today's mark cleared");
+    await api(`/api/habits/${clearButton.dataset.id}/logs/${state.activeDate}`, { method: "DELETE" });
+    showToast("Mark cleared");
     await refresh();
   }
 
@@ -824,7 +843,7 @@ document.addEventListener("click", async (event) => {
     const value = todoToggle.dataset.done === "true" ? 0 : 1;
     await api(`/api/habits/${todoToggle.dataset.habitId}/subhabits/${todoToggle.dataset.subId}/logs`, {
       method: "POST",
-      body: JSON.stringify({ date: todayKey, value })
+      body: JSON.stringify({ date: state.activeDate, value })
     });
     showToast(value ? "To do complete" : "To do reopened");
     await refresh();
@@ -881,6 +900,7 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
 setTheme(localStorage.getItem(themeKey) || "light");
 resetHabitForm();
 hydrateReminderForm();
+document.querySelector("#logDateInput").value = todayKey;
 setInterval(checkReminder, 30000);
 setPage("today");
 
