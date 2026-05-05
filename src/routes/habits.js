@@ -39,10 +39,6 @@ const subHabitSchema = z.object({
   title: z.string().trim().min(2).max(100)
 });
 
-const habitsQuerySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
-});
-
 async function syncParentHabitLog({ userId, habitId, date }) {
   const subHabits = await prisma.subHabit.findMany({
     where: { userId, habitId },
@@ -94,21 +90,19 @@ router.use(requireAuth);
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const query = habitsQuerySchema.parse(req.query);
-    const targetDate = query.date || toDateKey();
     const habits = await prisma.habit.findMany({
       where: { userId: req.user.id },
       orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
       include: {
         logs: {
-          where: { date: targetDate },
+          where: { date: toDateKey() },
           take: 1
         },
         subHabits: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           include: {
             logs: {
-              where: { date: targetDate },
+              where: { date: toDateKey() },
               take: 1
             }
           }
