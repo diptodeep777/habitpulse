@@ -1,13 +1,15 @@
+const todayKey = new Date().toISOString().slice(0, 10);
+
 const state = {
   user: null,
   habits: [],
   goals: [],
   insights: null,
   page: "today",
+  logDate: todayKey,
   scheduleDates: []
 };
 
-const todayKey = new Date().toISOString().slice(0, 10);
 const toast = new bootstrap.Toast(document.querySelector("#appToast"));
 const reminderKey = "habitpulse:reminder";
 const celebratedKey = "habitpulse:celebrated";
@@ -66,7 +68,7 @@ async function api(path, options = {}) {
 }
 
 function getTodayLog(habit) {
-  return habit.logs?.find((log) => log.date === todayKey);
+  return habit.logs?.find((log) => log.date === state.logDate);
 }
 
 function habitDays(habit) {
@@ -106,7 +108,7 @@ function frequencyText(habit) {
   return label;
 }
 
-function todoStats(habit, dateKey = todayKey) {
+function todoStats(habit, dateKey = state.logDate) {
   const todos = habit.subHabits || [];
   const completed = todos.filter((todo) => todo.logs?.some((log) => log.date === dateKey && log.value > 0)).length;
   return {
@@ -116,7 +118,7 @@ function todoStats(habit, dateKey = todayKey) {
   };
 }
 
-function habitStatus(habit, dateKey = todayKey) {
+function habitStatus(habit, dateKey = state.logDate) {
   if (!isScheduled(habit, dateKey)) return "rest";
   const log = getTodayLog(habit);
   if (log?.value === 0) return "not-done";
@@ -161,6 +163,7 @@ function renderUser() {
 
 function renderStats() {
   const stats = state.insights?.stats || {};
+  const viewingToday = state.logDate === todayKey;
   const items = [
     { label: "Scheduled today", value: stats.scheduledToday || 0, icon: "calendar-check", tone: "blue" },
     { label: "Work done", value: `${stats.todayWorkDone || 0}/${stats.todayWorkTotal || 0}`, icon: "check2-circle", tone: "green" },
@@ -170,7 +173,9 @@ function renderStats() {
 
   document.querySelector("#completionRate").textContent = `${stats.completionRate || 0}%`;
   document.querySelector("#heroSub").textContent =
-    stats.scheduledToday > 0
+    !viewingToday
+      ? `Logging entries for ${state.logDate}. You can catch up missed days here.`
+      : stats.scheduledToday > 0
       ? `${stats.todayWorkDone || 0} of ${stats.todayWorkTotal || 0} scheduled work blocks complete.`
       : "No habits scheduled today. Rest days stay clean.";
 
@@ -199,7 +204,7 @@ function renderTodoBlocks(habit) {
     <div class="todo-block-grid">
       ${todos
         .map((todo) => {
-          const done = todo.logs?.some((log) => log.date === todayKey && log.value > 0);
+          const done = todo.logs?.some((log) => log.date === state.logDate && log.value > 0);
           return `
             <button class="todo-block ${done ? "done" : ""}" data-habit-id="${habit.id}" data-sub-id="${todo.id}" data-done="${done}">
               <i class="bi ${done ? "bi-check-circle-fill" : "bi-circle"}"></i>
@@ -215,7 +220,7 @@ function renderTodoBlocks(habit) {
 function renderHabitCard(habit, { manage = false } = {}) {
   const status = habitStatus(habit);
   const todos = todoStats(habit);
-  const scheduled = isScheduled(habit);
+  const scheduled = isScheduled(habit, state.logDate);
   const statusText = {
     rest: "Rest day",
     complete: "All To do's done",
@@ -276,7 +281,7 @@ function renderHabitCard(habit, { manage = false } = {}) {
       </div>
       ${
         scheduled && status !== "open"
-          ? `<button class="btn btn-link btn-sm clear-check px-0 mt-2" data-id="${habit.id}">Clear today's mark</button>`
+          ? `<button class="btn btn-link btn-sm clear-check px-0 mt-2" data-id="${habit.id}">Clear ${state.logDate === todayKey ? "today's" : "this date's"} mark</button>`
           : ""
       }
     </article>
@@ -285,13 +290,13 @@ function renderHabitCard(habit, { manage = false } = {}) {
 
 function renderHabits() {
   const activeHabits = state.habits.filter((habit) => !habit.archived);
-  const todayHabits = activeHabits.filter((habit) => isScheduled(habit));
+  const todayHabits = activeHabits.filter((habit) => isScheduled(habit, state.logDate));
   const todayList = document.querySelector("#todayHabitList");
   const allList = document.querySelector("#habitList");
 
   todayList.innerHTML = todayHabits.length
     ? todayHabits.map((habit) => renderHabitCard(habit, { manage: false })).join("")
-    : `<div class="empty-state"><i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>No habits scheduled today.</div>`;
+    : `<div class="empty-state"><i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>No habits scheduled for ${escapeHtml(state.logDate)}.</div>`;
 
   allList.innerHTML = activeHabits.length
     ? activeHabits.map((habit) => renderHabitCard(habit, { manage: true })).join("")
@@ -388,7 +393,7 @@ function renderTodoProgress() {
               <div class="todo-checkline mt-3">
                 ${(habit.subHabits || [])
                   .map((todo) => {
-                    const done = todo.logs?.some((log) => log.date === todayKey && log.value > 0);
+                    const done = todo.logs?.some((log) => log.date === state.logDate && log.value > 0);
                     return `<span class="${done ? "done" : ""}"><i class="bi ${done ? "bi-check-lg" : "bi-x"}"></i>${escapeHtml(todo.title)}</span>`;
                   })
                   .join("")}
@@ -545,7 +550,7 @@ function renderAll() {
 async function refresh() {
   const [{ user }, { habits }, { goals }, insights] = await Promise.all([
     api("/api/auth/me"),
-    api("/api/habits"),
+    api(`/api/habits?date=${encodeURIComponent(state.logDate)}`),
     api("/api/goals"),
     api("/api/insights/summary")
   ]);
@@ -791,15 +796,15 @@ document.addEventListener("click", async (event) => {
     const value = statusButton.dataset.status === "done" ? 1 : 0;
     await api(`/api/habits/${statusButton.dataset.id}/logs`, {
       method: "POST",
-      body: JSON.stringify({ date: todayKey, value })
+      body: JSON.stringify({ date: state.logDate, value })
     });
     showToast(value ? "Marked done" : "Marked not done");
     await refresh();
   }
 
   if (clearButton) {
-    await api(`/api/habits/${clearButton.dataset.id}/logs/${todayKey}`, { method: "DELETE" });
-    showToast("Today's mark cleared");
+    await api(`/api/habits/${clearButton.dataset.id}/logs/${state.logDate}`, { method: "DELETE" });
+    showToast("Check-in cleared");
     await refresh();
   }
 
@@ -824,7 +829,7 @@ document.addEventListener("click", async (event) => {
     const value = todoToggle.dataset.done === "true" ? 0 : 1;
     await api(`/api/habits/${todoToggle.dataset.habitId}/subhabits/${todoToggle.dataset.subId}/logs`, {
       method: "POST",
-      body: JSON.stringify({ date: todayKey, value })
+      body: JSON.stringify({ date: state.logDate, value })
     });
     showToast(value ? "To do complete" : "To do reopened");
     await refresh();
@@ -877,6 +882,26 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
   await api("/api/auth/logout", { method: "POST" });
   window.location.href = "/";
 });
+
+document.querySelector("#logDate").value = state.logDate;
+document.querySelector("#logDate").max = todayKey;
+document.querySelector("#logDate").addEventListener("change", async (event) => {
+  state.logDate = event.target.value || todayKey;
+  await refresh();
+});
+
+let calendarScrollTimer;
+document.querySelector("#monthlyCalendar").addEventListener(
+  "scroll",
+  (event) => {
+    event.currentTarget.classList.add("is-scrolling");
+    window.clearTimeout(calendarScrollTimer);
+    calendarScrollTimer = window.setTimeout(() => {
+      event.currentTarget.classList.remove("is-scrolling");
+    }, 160);
+  },
+  { passive: true }
+);
 
 setTheme(localStorage.getItem(themeKey) || "light");
 resetHabitForm();

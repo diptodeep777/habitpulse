@@ -6,6 +6,7 @@ const { requireAuth } = require("../middleware/auth");
 const { toDateKey } = require("../utils/date");
 
 const router = express.Router();
+const dateParamSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const habitSchema = z.object({
   title: z.string().trim().min(2).max(100),
@@ -90,19 +91,20 @@ router.use(requireAuth);
 router.get(
   "/",
   asyncHandler(async (req, res) => {
+    const selectedDate = req.query.date ? dateParamSchema.parse(req.query.date) : toDateKey();
     const habits = await prisma.habit.findMany({
       where: { userId: req.user.id },
       orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
       include: {
         logs: {
-          where: { date: toDateKey() },
+          where: { date: selectedDate },
           take: 1
         },
         subHabits: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           include: {
             logs: {
-              where: { date: toDateKey() },
+              where: { date: selectedDate },
               take: 1
             }
           }
